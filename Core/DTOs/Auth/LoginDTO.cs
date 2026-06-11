@@ -6,7 +6,7 @@ namespace Core.DTOs.Auth
     /// Data Transfer Object for user login.
     /// Carries user login credentials from the Presentation Layer to the Business Access Layer.
     /// </summary>
-    public class LoginDTO
+    public class LoginDto
     {
         /// <summary>
         /// User's email address.
