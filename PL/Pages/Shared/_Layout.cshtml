@@ -1,52 +1,291 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+﻿@using Core.Entities
+@{
+    var isAuthenticated = User.Identity?.IsAuthenticated == true;
+    // RouteData.Values["page"] is e.g. "/Auth/Login", "/Subject/Index"
+    var page = (ViewContext.RouteData.Values["page"]?.ToString() ?? "").TrimStart('/');
+    var firstSegment = page.Contains('/') ? page[..page.IndexOf('/')] : page;
+    var lastSegment = page.Contains('/') ? page[(page.LastIndexOf('/') + 1)..] : page;
+
+    // Auth pages use _AuthLayout (no sidebar) — but for Razor Pages, easiest is to
+    // detect by first segment == "Auth" and embed them as full-screen content here.
+    var isAuthPage = string.Equals(firstSegment, "Auth", StringComparison.OrdinalIgnoreCase);
+    var isErrorPage = string.Equals(firstSegment, "Error", StringComparison.OrdinalIgnoreCase);
+
+    UserRole userRole = UserRole.Student;
+    string userRoleStr = "Student";
+    if (isAuthenticated)
+    {
+        userRoleStr = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "Student";
+        Enum.TryParse<UserRole>(userRoleStr, out userRole);
+    }
+
+    // Resolve the Subjects nav link per role
+    string subjectLink = "/Subject/Browse";
+    if (userRole == UserRole.Admin) subjectLink = "/Subject/Index";
+    else if (userRole == UserRole.Lecturer) subjectLink = "/Subject/MySubjects";
+
+    // Helper to decide whether a sidebar item is "active"
+    Func<string, bool> isActiveController = (string c) => string.Equals(firstSegment, c, StringComparison.OrdinalIgnoreCase);
+    Func<string, string, bool> isActiveAction = (string c, string a) =>
+        string.Equals(firstSegment, c, StringComparison.OrdinalIgnoreCase)
+        && string.Equals(lastSegment, a, StringComparison.OrdinalIgnoreCase);
+}
+<!DOCTYPE html>
+<html class="dark" lang="vi">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - PL</title>
-    <script type="importmap"></script>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/PL.styles.css" asp-append-version="true" />
+    <title>@ViewData["Title"] - LMS AI Learning Assistant (Razor Pages)</title>
+
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Times+New+Roman&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+
+    <style>
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .material-symbols-outlined.filled { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        body { font-family: 'Times New Roman', Times, Georgia, serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #343538; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #414754; }
+    </style>
+
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-fixed": "#89fa9b", "secondary-fixed-dim": "#a8c8ff", "surface": "#121316",
+                        "surface-container-high": "#292a2d", "error-container": "#93000a", "surface-dim": "#121316",
+                        "surface-container-highest": "#343538", "on-secondary-container": "#8cb6fb",
+                        "secondary-container": "#114784", "surface-container-low": "#1a1b1e", "on-surface": "#e3e2e6",
+                        "on-tertiary-fixed": "#002108", "primary": "#adc7ff", "background": "#121316",
+                        "secondary": "#a8c8ff", "inverse-surface": "#e3e2e6", "on-tertiary": "#003914",
+                        "surface-container-lowest": "#0d0e11", "surface-container": "#1e2022",
+                        "on-surface-variant": "#c1c6d6", "on-error-container": "#ffdad6", "secondary-fixed": "#d5e3ff",
+                        "on-tertiary-container": "#ffffff", "on-primary": "#002e68", "inverse-on-surface": "#2f3033",
+                        "on-error": "#690005", "on-secondary-fixed": "#001b3c", "surface-bright": "#38393c",
+                        "on-secondary": "#003061", "on-primary-container": "#ffffff", "on-tertiary-fixed-variant": "#005320",
+                        "primary-container": "#1a73e8", "surface-tint": "#adc7ff", "tertiary-container": "#008939",
+                        "on-primary-fixed": "#001a41", "error": "#ffb4ab", "inverse-primary": "#005bc0",
+                        "tertiary-fixed-dim": "#6ddd81", "on-background": "#e3e2e6", "outline": "#8b909f",
+                        "primary-fixed-dim": "#adc7ff", "on-secondary-fixed-variant": "#114784",
+                        "outline-variant": "#414754", "primary-fixed": "#d8e2ff", "surface-variant": "#343538",
+                        "tertiary": "#6ddd81", "on-primary-fixed-variant": "#004493"
+                    },
+                    "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                    "spacing": { "gutter": "16px", "sidebar-width": "280px", "unit": "4px",
+                        "margin-desktop": "24px", "header-height": "64px", "margin-mobile": "16px" }
+                }
+            }
+        }
+    </script>
 </head>
-<body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container">
-                <a class="navbar-brand" asp-area="" asp-page="/Index">PL</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Privacy">Privacy</a>
-                        </li>
-                    </ul>
+<body class="bg-background text-on-background min-h-screen overflow-hidden selection:bg-primary-container selection:text-on-primary-container">
+
+    @if (!isAuthenticated || isAuthPage || isErrorPage)
+    {
+        <main class="w-full min-h-screen flex items-center justify-center relative overflow-x-hidden">
+            @RenderBody()
+        </main>
+    }
+    else
+    {
+        <nav class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-margin-desktop bg-surface h-header-height border-b border-outline-variant transition-colors duration-200">
+            <div class="flex items-center gap-6">
+                <a class="font-headline-md text-headline-md font-bold text-on-surface tracking-tight" asp-page="/Index">LMS AI</a>
+                <span class="px-2.5 py-0.5 rounded-full bg-secondary-container text-on-secondary-container text-[11px] font-bold uppercase tracking-wider select-none">
+                    @userRoleStr
+                </span>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <div class="relative" id="userMenuWrapper">
+                    <div onclick="toggleUserMenu()" class="flex items-center cursor-pointer select-none group">
+                        <div class="w-8 h-8 rounded-full bg-surface-container-highest border border-outline-variant flex items-center justify-center overflow-hidden hover:ring-2 hover:ring-primary/50 transition-all">
+                            <span class="material-symbols-outlined text-on-surface-variant text-[20px] group-hover:text-primary transition-colors">person</span>
+                        </div>
+                    </div>
+
+                    <div id="userMenuDropdown" class="hidden absolute right-0 top-[calc(100%+12px)] w-64 bg-surface-container-high border border-outline-variant/60 rounded-2xl shadow-2xl z-[500] overflow-hidden p-4 select-none">
+                        <div class="flex flex-col items-center text-center pb-4 border-b border-outline-variant/30">
+                            <div class="w-12 h-12 rounded-full bg-primary/20 text-primary font-bold text-headline-sm flex items-center justify-center mb-3">
+                                @(string.IsNullOrEmpty(User.Identity?.Name) ? "U" : User.Identity.Name.Substring(0, 1).ToUpper())
+                            </div>
+                            <h4 class="font-headline-sm text-on-surface font-semibold text-sm truncate max-w-full">@User.Identity?.Name</h4>
+                            <p class="font-body-md text-outline text-xs truncate max-w-full mt-1">@User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value</p>
+                            <span class="mt-2.5 px-2.5 py-0.5 rounded-full bg-secondary-container text-on-secondary-container text-[10px] font-bold uppercase tracking-wider">
+                                @userRoleStr
+                            </span>
+                        </div>
+                        <div class="pt-4">
+                            <form method="post" asp-page="/Auth/Logout" id="logoutForm">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-error-container text-on-error-container hover:bg-error-container/80 font-label-md text-label-md rounded-lg transition-colors font-bold cursor-pointer border-0">
+                                    <span class="material-symbols-outlined text-[18px]">logout</span>
+                                    Đăng xuất
+                                </button>
+                            </form>
+                        </div>
+                    </div>
                 </div>
             </div>
         </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - PL - <a asp-area="" asp-page="/Privacy">Privacy</a>
+        <div class="flex h-screen pt-header-height">
+            <aside class="fixed left-0 top-header-height h-[calc(100vh-64px)] w-sidebar-width flex flex-col py-4 z-40 bg-surface-container-low border-r border-outline-variant hidden md:flex transition-all duration-300">
+                <div class="px-6 mb-6 select-none">
+                    <h2 class="font-headline-sm text-headline-sm font-bold text-primary tracking-tight">Thư viện</h2>
+                    <p class="font-body-md text-body-md text-on-surface-variant mt-1">Quản lý tài liệu học tập</p>
+                </div>
+
+                <nav class="flex-1 px-3 space-y-1 overflow-y-auto">
+                    @if (userRole == UserRole.Admin)
+                    {
+                        <a class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all font-body-md text-body-md group @(isActiveController("Admin") && isActiveAction("Admin", "Index") ? "bg-secondary-container text-on-secondary-container font-bold" : "text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface")" asp-page="/Admin/Index">
+                            <span class="material-symbols-outlined @(isActiveAction("Admin", "Index") ? "filled" : "text-outline group-hover:text-on-surface")">monitoring</span>
+                            <span class="flex-1">Dashboard Admin</span>
+                        </a>
+                        <a class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all font-body-md text-body-md group @(isActiveController("Subject") ? "bg-secondary-container text-on-secondary-container font-bold" : "text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface")" href="@subjectLink">
+                            <span class="material-symbols-outlined @(isActiveController("Subject") ? "filled" : "text-outline group-hover:text-on-surface")">folder</span>
+                            <span class="flex-1">Môn học</span>
+                        </a>
+                        <a class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all font-body-md text-body-md group @(isActiveAction("Admin", "Documents") ? "bg-secondary-container text-on-secondary-container font-bold" : "text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface")" asp-page="/Admin/Documents">
+                            <span class="material-symbols-outlined @(isActiveAction("Admin", "Documents") ? "filled" : "text-outline group-hover:text-on-surface")">description</span>
+                            <span class="flex-1">Quản lý tài liệu</span>
+                        </a>
+                        <a class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all font-body-md text-body-md group @(isActiveAction("Admin", "Users") ? "bg-secondary-container text-on-secondary-container font-bold" : "text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface")" asp-page="/Admin/Users">
+                            <span class="material-symbols-outlined @(isActiveAction("Admin", "Users") ? "filled" : "text-outline group-hover:text-on-surface")">group</span>
+                            <span class="flex-1">Người dùng</span>
+                        </a>
+                    }
+                    else
+                    {
+                        <a class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all font-body-md text-body-md group @(isActiveController("Subject") ? "bg-secondary-container text-on-secondary-container font-bold" : "text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface")" href="@subjectLink">
+                            <span class="material-symbols-outlined @(isActiveController("Subject") ? "filled" : "text-outline group-hover:text-on-surface")">folder</span>
+                            <span class="flex-1">Môn học</span>
+                        </a>
+                    }
+                </nav>
+            </aside>
+
+            <main class="flex-1 md:ml-[280px] h-full overflow-y-auto bg-background scroll-smooth">
+                <div class="p-6 md:p-8">
+                    @RenderBody()
+                </div>
+            </main>
         </div>
-    </footer>
+    }
 
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        function showNotification(message, type = 'info') {
+            let container = document.getElementById('notification-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'notification-container';
+                container.className = 'fixed top-6 right-6 z-[9999] flex flex-col gap-3 max-w-sm w-full pointer-events-none';
+                document.body.appendChild(container);
+            }
+            const toast = document.createElement('div');
+            toast.className = 'flex items-start gap-3 p-4 rounded-xl shadow-2xl border transition-all duration-300 transform translate-x-12 opacity-0 pointer-events-auto select-none ';
+            let bgColor, icon;
+            if (type === 'success') { bgColor = 'bg-[#142718] border-tertiary text-tertiary'; icon = 'check_circle'; }
+            else if (type === 'error') { bgColor = 'bg-[#2c1516] border-error text-error'; icon = 'error'; }
+            else if (type === 'warning') { bgColor = 'bg-[#2a2214] border-yellow-500 text-yellow-400'; icon = 'warning'; }
+            else { bgColor = 'bg-[#141b2b] border-primary text-primary'; icon = 'info'; }
+            toast.className += `${bgColor}`;
+            toast.innerHTML = `
+                <span class="material-symbols-outlined text-[20px] shrink-0 filled">${icon}</span>
+                <div class="flex-1 min-w-0"><p class="text-xs font-semibold leading-relaxed break-words">${message}</p></div>
+                <button class="text-current opacity-60 hover:opacity-100 shrink-0 cursor-pointer" onclick="this.parentElement.remove()">
+                    <span class="material-symbols-outlined text-[16px]">close</span>
+                </button>`;
+            container.appendChild(toast);
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-x-12', 'opacity-0');
+                toast.classList.add('translate-x-0', 'opacity-100');
+            });
+            setTimeout(() => {
+                toast.classList.remove('translate-x-0', 'opacity-100');
+                toast.classList.add('translate-x-12', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+        window.alert = function (message) { showNotification(message, 'warning'); };
+
+        function showConfirmModal(message, onConfirm) {
+            let existing = document.getElementById('custom-confirm-modal');
+            if (existing) existing.remove();
+            const modal = document.createElement('div');
+            modal.id = 'custom-confirm-modal';
+            modal.className = 'fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-background/60 backdrop-blur-sm transition-opacity duration-300 opacity-0';
+            modal.innerHTML = `
+                <div class="bg-surface-container-high border border-outline-variant/50 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden transform scale-95 transition-transform duration-300 p-6 flex flex-col items-center text-center">
+                    <span class="material-symbols-outlined text-[48px] text-error mb-3 filled">warning</span>
+                    <h3 class="font-headline-sm text-headline-sm font-bold text-on-surface mb-2 select-none">Xác nhận yêu cầu</h3>
+                    <p class="font-body-md text-body-md text-on-surface-variant mb-6 select-none break-words">${message}</p>
+                    <div class="flex gap-3 w-full">
+                        <button type="button" id="confirm-cancel-btn" class="flex-1 px-4 py-2.5 bg-surface border border-outline-variant hover:bg-surface-container-highest text-on-surface font-label-md text-label-md rounded-lg transition-colors cursor-pointer font-bold">Hủy bỏ</button>
+                        <button type="button" id="confirm-ok-btn" class="flex-1 px-4 py-2.5 bg-error-container text-on-error-container hover:bg-error-container/80 font-label-md text-label-md rounded-lg transition-colors cursor-pointer font-bold">Xác nhận</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(modal);
+            requestAnimationFrame(() => {
+                modal.classList.remove('opacity-0');
+                modal.querySelector('div').classList.remove('scale-95');
+                modal.querySelector('div').classList.add('scale-100');
+            });
+            const closeModal = () => {
+                modal.classList.add('opacity-0');
+                modal.querySelector('div').classList.remove('scale-100');
+                modal.querySelector('div').classList.add('scale-95');
+                setTimeout(() => modal.remove(), 300);
+            };
+            modal.querySelector('#confirm-cancel-btn').addEventListener('click', closeModal);
+            modal.querySelector('#confirm-ok-btn').addEventListener('click', () => { closeModal(); if (typeof onConfirm === 'function') onConfirm(); });
+            modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+            const handleEsc = (e) => { if (e.key === 'Escape') { closeModal(); document.removeEventListener('keydown', handleEsc); } };
+            document.addEventListener('keydown', handleEsc);
+        }
+
+        document.addEventListener('submit', function (e) {
+            const form = e.target;
+            if (form.dataset.confirmed === 'true') return;
+            const confirmMessage = form.getAttribute('data-confirm') || e.submitter?.getAttribute('data-confirm');
+            if (confirmMessage) {
+                e.preventDefault();
+                showConfirmModal(confirmMessage, () => { form.dataset.confirmed = 'true'; form.submit(); });
+            }
+        });
+
+        function toggleUserMenu() { document.getElementById('userMenuDropdown')?.classList.toggle('hidden'); }
+        function closeUserMenu() { document.getElementById('userMenuDropdown')?.classList.add('hidden'); }
+        document.addEventListener('click', function (e) {
+            const wrapper = document.getElementById('userMenuWrapper');
+            if (wrapper && !wrapper.contains(e.target)) closeUserMenu();
+        });
+    </script>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                showNotification('@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(TempData["SuccessMessage"] as string ?? ""))', 'success');
+            });
+        </script>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                showNotification('@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(TempData["ErrorMessage"] as string ?? ""))', 'error');
+            });
+        </script>
+    }
 
     @await RenderSectionAsync("Scripts", required: false)
+    <script src="~/js/upload.js" asp-append-version="true"></script>
 </body>
 </html>

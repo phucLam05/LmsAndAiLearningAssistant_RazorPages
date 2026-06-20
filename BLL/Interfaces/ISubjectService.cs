@@ -1,3 +1,4 @@
+using Core.DTOs.Common;
 using Core.DTOs.Subject;
 using System;
 using System.Collections.Generic;
@@ -43,5 +44,9 @@ namespace BLL.Interfaces
 
         /// <summary>Get all active subjects available for students to select for chat.</summary>
         Task<IEnumerable<SubjectDto>> GetActiveSubjectsAsync();
+
+        Task<PagedResult<SubjectDto>> GetPagedAllSubjectsAsync(string? search, string? status, int pageIndex, int pageSize);
+        Task<PagedResult<SubjectDto>> GetPagedSubjectsByLecturerAsync(Guid lecturerId, string? search, int pageIndex, int pageSize);
+        Task<PagedResult<SubjectDto>> GetPagedActiveSubjectsAsync(string? search, int pageIndex, int pageSize);
     }
 }

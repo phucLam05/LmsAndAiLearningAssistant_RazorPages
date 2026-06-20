@@ -28,5 +28,7 @@ namespace BLL.Interfaces
         Task<Result> RetryProcessingAsync(Guid documentId, Guid userId);
 
         Task<IReadOnlyList<DocumentDto>> GetAllDocumentsAsync();
+
+        Task<PagedResult<DocumentDto>> GetPagedDocumentsAsync(string? search, string? status, Guid? subjectId, int pageIndex, int pageSize);
     }
 }

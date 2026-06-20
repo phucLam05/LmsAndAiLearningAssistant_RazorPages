@@ -31,6 +31,13 @@ namespace DAL.Repositories
             return await _context.Users.FindAsync(id);
         }
 
+        public async Task<User?> GetByUserCodeAsync(string userCode)
+        {
+            if (string.IsNullOrWhiteSpace(userCode)) return null;
+            var normalized = userCode.Trim().ToUpperInvariant();
+            return await _context.Users.FirstOrDefaultAsync(u => u.UserCode == normalized);
+        }
+
         public async Task<User> AddUserAsync(User user)
         {
             await _context.Users.AddAsync(user);
@@ -57,6 +64,40 @@ namespace DAL.Repositories
                 .AsNoTracking()
                 .OrderByDescending(u => u.CreatedAt)
                 .ToListAsync();
+        }
+
+        public IQueryable<User> Query()
+        {
+            return _context.Users.AsNoTracking();
+        }
+
+        public async Task<IReadOnlyList<User>> QueryUsersAsync(string? search, UserRole? role, UserStatus? status, int pageIndex, int pageSize)
+        {
+            var q = ApplyFilters(_context.Users.AsNoTracking(), search, role, status);
+            return await q
+                .OrderByDescending(u => u.CreatedAt)
+                .Skip((pageIndex - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+        }
+
+        public async Task<int> CountUsersAsync(string? search, UserRole? role, UserStatus? status)
+        {
+            return await ApplyFilters(_context.Users.AsNoTracking(), search, role, status).CountAsync();
+        }
+
+        private static IQueryable<User> ApplyFilters(IQueryable<User> q, string? search, UserRole? role, UserStatus? status)
+        {
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var s = search.Trim().ToUpperInvariant();
+                q = q.Where(u =>
+                    u.UserCode.ToUpper().Contains(s) ||
+                    u.FullName.ToUpper().Contains(s));
+            }
+            if (role.HasValue) q = q.Where(u => u.Role == role.Value);
+            if (status.HasValue) q = q.Where(u => u.Status == status.Value);
+            return q;
         }
 
         public async Task<bool> UserCodeExistsAsync(string userCode)

@@ -109,5 +109,31 @@ namespace DAL.Repositories
                 .OrderByDescending(d => d.CreatedAt)
                 .ToListAsync();
         }
+
+        public async Task<IReadOnlyList<Document>> QueryAsync(string? search, Core.Entities.DocumentStatus? status, Guid? subjectId, int pageIndex, int pageSize)
+        {
+            var q = ApplyFilters(_context.Documents.AsNoTracking().Include(d => d.Subject).Include(d => d.Uploader), search, status, subjectId);
+            return await q.OrderByDescending(d => d.CreatedAt)
+                .Skip((pageIndex - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+        }
+
+        public async Task<int> CountAsync(string? search, Core.Entities.DocumentStatus? status, Guid? subjectId)
+        {
+            return await ApplyFilters(_context.Documents.AsNoTracking(), search, status, subjectId).CountAsync();
+        }
+
+        private static IQueryable<Document> ApplyFilters(IQueryable<Document> q, string? search, Core.Entities.DocumentStatus? status, Guid? subjectId)
+        {
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var s = search.Trim().ToLowerInvariant();
+                q = q.Where(d => d.FileName.ToLower().Contains(s));
+            }
+            if (status.HasValue) q = q.Where(d => d.Status == status.Value);
+            if (subjectId.HasValue) q = q.Where(d => d.SubjectId == subjectId.Value);
+            return q;
+        }
     }
 }

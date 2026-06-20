@@ -1,0 +1,88 @@
+﻿@using System.Text
+@using Microsoft.AspNetCore.Http
+@using Microsoft.AspNetCore.Routing
+@*
+    Reusable pager. Caller passes:
+      - paged: a PagedResult<T> (TotalCount, PageIndex, PageSize, TotalPages, HasPreviousPage, HasNextPage)
+      - routeName / routeValues: optional route for the page link
+    All other query string params on the current request are preserved.
+*@
+@{
+    var paged = ViewData["PagedResult"];
+    string? routeName = ViewData["PagerRoute"] as string;
+}
+
+@if (paged is Core.DTOs.Common.PagedResult<object> pagedObj
+   && pagedObj.TotalPages > 1)
+{
+    int currentPage = pagedObj.PageIndex;
+    int totalPages = pagedObj.TotalPages;
+    int totalCount = pagedObj.TotalCount;
+    int pageSize = pagedObj.PageSize;
+    int startItem = (currentPage - 1) * pageSize + 1;
+    int endItem = Math.Min(currentPage * pageSize, totalCount);
+
+    // Build a base query string with everything except "page"
+    var qs = new StringBuilder();
+    var req = ViewContext.HttpContext.Request;
+    foreach (var kv in req.Query)
+    {
+        if (kv.Key.Equals("page", StringComparison.OrdinalIgnoreCase)) continue;
+        foreach (var v in kv.Value)
+        {
+            if (qs.Length > 0) qs.Append('&');
+            qs.Append(Uri.EscapeDataString(kv.Key)).Append('=').Append(Uri.EscapeDataString(v ?? string.Empty));
+        }
+    }
+    string Append(int page)
+    {
+        return qs.Length > 0 ? $"?page={page}&{qs}" : $"?page={page}";
+    }
+
+    // Sliding window of page numbers
+    const int window = 5;
+    int from = Math.Max(1, currentPage - 2);
+    int to = Math.Min(totalPages, from + window - 1);
+    from = Math.Max(1, to - window + 1);
+
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4 select-none">
+        <p class="text-[11px] text-on-surface-variant">
+            Hiển thị <strong class="text-on-surface">@startItem</strong>–<strong class="text-on-surface">@endItem</strong>
+            trên tổng <strong class="text-on-surface">@totalCount</strong>
+        </p>
+        <nav class="flex items-center gap-1" aria-label="Pagination">
+            <a href="@(pagedObj.HasPreviousPage ? Append(currentPage - 1) : "#")"
+               class="px-2.5 py-1.5 rounded-lg border border-outline-variant/40 @(pagedObj.HasPreviousPage ? "text-on-surface hover:bg-surface-container-highest" : "text-outline opacity-40 pointer-events-none") transition-colors text-xs">
+                <span class="material-symbols-outlined text-[14px]">chevron_left</span>
+            </a>
+            @if (from > 1)
+            {
+                <a href="@Append(1)" class="px-3 py-1.5 rounded-lg border border-outline-variant/40 text-on-surface hover:bg-surface-container-highest text-xs">1</a>
+                @if (from > 2)
+                {
+                    <span class="px-2 text-outline text-xs">…</span>
+                }
+            }
+            @for (int i = from; i <= to; i++)
+            {
+                bool active = i == currentPage;
+                <a href="@Append(i)"
+                   class="px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors @(active ? "bg-primary text-on-primary border-primary" : "border-outline-variant/40 text-on-surface hover:bg-surface-container-highest")">
+                    @i
+                </a>
+            }
+            @if (to < totalPages)
+            {
+                @if (to < totalPages - 1)
+                {
+                    <span class="px-2 text-outline text-xs">…</span>
+                }
+                <a href="@Append(totalPages)" class="px-3 py-1.5 rounded-lg border border-outline-variant/40 text-on-surface hover:bg-surface-container-highest text-xs">@totalPages</a>
+            }
+            <a href="@(pagedObj.HasNextPage ? Append(currentPage + 1) : "#")"
+               class="px-2.5 py-1.5 rounded-lg border border-outline-variant/40 @(pagedObj.HasNextPage ? "text-on-surface hover:bg-surface-container-highest" : "text-outline opacity-40 pointer-events-none") transition-colors text-xs">
+                <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+            </a>
+        </nav>
+    </div>
+}

@@ -1,0 +1,133 @@
+﻿@page
+@model PL.Pages.Lecturer.PortalModel
+@using Core.Entities
+@{
+    ViewData["Title"] = "KhÃ´ng gian Giáº£ng viÃªn";
+}
+
+<div class="max-w-7xl mx-auto flex flex-col md:flex-row gap-4">
+    <aside class="w-full md:w-72 bg-surface-container-low border border-outline-variant/30 rounded-2xl p-4 flex flex-col gap-2">
+        <h2 class="font-headline-sm text-base font-bold text-on-surface mb-2">MÃ´n há»c cá»§a tÃ´i</h2>
+        @if (!Model.Subjects.Any())
+        {
+            <p class="text-xs text-outline">ChÆ°a cÃ³ mÃ´n há»c nÃ o.</p>
+        }
+        else
+        {
+            @foreach (var s in Model.Subjects)
+            {
+                <a href="?selectedSubjectId=@s.Id" class="block px-3 py-2 rounded-lg text-xs @(s.Id == Model.SelectedSubjectId ? "bg-primary text-on-primary font-bold" : "text-on-surface-variant hover:bg-surface-container")">
+                    <div class="font-mono text-[10px] opacity-70">@s.SubjectCode</div>
+                    <div class="truncate">@s.Name</div>
+                </a>
+            }
+        }
+    </aside>
+
+    <main class="flex-1 space-y-4">
+        <div class="flex items-center justify-between">
+            <h1 class="font-headline-md text-headline-md font-bold text-on-surface">
+                @if (Model.SelectedSubject != null) { <span>@Model.SelectedSubject.Name</span> } else { <span>Chá»n mÃ´n há»c</span> }
+            </h1>
+        </div>
+
+        @if (Model.SelectedSubject != null)
+        {
+            <div class="bg-surface-container-low border border-outline-variant/30 rounded-2xl p-5 shadow-sm upload-card">
+                <h3 class="font-headline-sm text-base font-bold text-on-surface mb-3">Táº£i lÃªn tÃ i liá»‡u</h3>
+                <div id="uploadDropzone" class="border-2 border-dashed border-outline-variant hover:border-primary/50 rounded-xl p-8 text-center cursor-pointer transition-all">
+                    <span class="material-symbols-outlined text-[48px] text-outline">cloud_upload</span>
+                    <p class="text-sm text-on-surface-variant mt-2">KÃ©o tháº£ má»™t hoáº·c nhiá»u tá»‡p hoáº·c <span class="text-primary font-bold">nháº¥n Ä‘á»ƒ chá»n</span></p>
+                    <p class="text-[10px] text-outline mt-1">PDF, DOCX, PPTX, TXT, MD â€” tá»‘i Ä‘a 50MB / tá»‡p</p>
+                    <input type="file" id="fileInput" multiple accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.md,.csv,.json,.xml,.rtf" class="hidden" />
+                </div>
+            </div>
+
+            <div class="bg-surface-container-low border border-outline-variant/30 rounded-2xl p-5 shadow-sm">
+                <h3 class="font-headline-sm text-base font-bold text-on-surface mb-3">TÃ i liá»‡u Ä‘Ã£ táº£i lÃªn (@Model.Documents.Count)</h3>
+                @if (!Model.Documents.Any())
+                {
+                    <p class="text-xs text-on-surface-variant text-center py-6">ChÆ°a cÃ³ tÃ i liá»‡u nÃ o.</p>
+                }
+                else
+                {
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead>
+                                <tr class="bg-surface-container-lowest border-b border-outline-variant/50">
+                                    <th class="p-3 text-label-md font-semibold text-on-surface-variant uppercase">TÃªn</th>
+                                    <th class="p-3 text-label-md font-semibold text-on-surface-variant uppercase hidden sm:table-cell">KÃ­ch thÆ°á»›c</th>
+                                    <th class="p-3 text-label-md font-semibold text-on-surface-variant uppercase">Tráº¡ng thÃ¡i</th>
+                                    <th class="p-3 text-label-md font-semibold text-on-surface-variant uppercase text-right pr-3">Thao tÃ¡c</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-outline-variant/30">
+                                @foreach (var doc in Model.Documents)
+                                {
+                                    <tr id="doc-@doc.Id">
+                                        <td class="p-3 text-xs text-on-surface">@doc.FileName</td>
+                                        <td class="p-3 text-xs text-on-surface-variant hidden sm:table-cell">@doc.FileSizeStr</td>
+                                <td class="p-3">
+                                    <span class="doc-status inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-semibold" data-doc-id="@doc.Id">
+                                        @if (doc.Status == "Processing")
+                                        {
+                                            <span class="w-3 h-3 border-2 border-t-transparent border-blue-500 rounded-full animate-spin"></span>
+                                        }
+                                        <span class="doc-status-text">@doc.Status</span>
+                                    </span>
+                                </td>
+                                        <td class="p-3 text-right">
+                                            <div class="inline-flex gap-1">
+                                                <a asp-page="/Document/ViewOriginal" asp-route-id="@doc.Id" target="_blank" class="p-1 bg-surface border border-outline-variant hover:bg-surface-container-high rounded text-on-surface-variant" title="Táº£i xuá»‘ng">
+                                                    <span class="material-symbols-outlined text-[14px]">download</span>
+                                                </a>
+                                                @if (doc.Status == "Failed")
+                                                {
+                                                    <form method="post" asp-page-handler="Retry" asp-route-id="@doc.Id" asp-route-subjectId="@Model.SelectedSubjectId" class="inline">
+                                                        @Html.AntiForgeryToken()
+                                                        <button type="submit" class="p-1 bg-surface border border-outline-variant hover:bg-surface-container-high rounded text-primary" title="Thá»­ láº¡i">
+                                                            <span class="material-symbols-outlined text-[14px]">refresh</span>
+                                                        </button>
+                                                    </form>
+                                                }
+                                                <form method="post" asp-page-handler="Delete" asp-route-id="@doc.Id" asp-route-subjectId="@Model.SelectedSubjectId" class="inline" data-confirm="Báº¡n cÃ³ cháº¯c muá»‘n xÃ³a @doc.FileName?">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="p-1 bg-surface border border-outline-variant hover:bg-error-container/20 rounded text-error" title="XÃ³a">
+                                                        <span class="material-symbols-outlined text-[14px]">delete</span>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="bg-surface-container-low border border-outline-variant border-dashed rounded-2xl p-12 text-center">
+                <span class="material-symbols-outlined text-[48px] text-outline">arrow_back</span>
+                <p class="text-sm text-on-surface-variant mt-2">Vui lÃ²ng chá»n má»™t mÃ´n há»c tá»« thanh bÃªn Ä‘á»ƒ báº¯t Ä‘áº§u.</p>
+            </div>
+        }
+    </main>
+</div>
+
+@section Scripts {
+    <script>
+        const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+        LmsUpload.bindDropzone({
+            dropzoneId: 'uploadDropzone',
+            fileInputId: 'fileInput',
+            cardSelector: '.upload-card',
+            uploadUrl: '?handler=UploadLecturerFile',
+            token: token,
+            subjectId: '@Model.SelectedSubjectId',
+            fieldName: 'file'
+        });
+        LmsUpload.pollDocumentStatus('?handler=GetStatus', token);
+    </script>
+}

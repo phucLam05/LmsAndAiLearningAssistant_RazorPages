@@ -104,7 +104,7 @@ namespace BLL.Services
                 // We return null to fail the login gracefully
                 return null;
             }
-            
+
             if (user == null)
             {
                 return null;
@@ -119,6 +119,31 @@ namespace BLL.Services
             }
 
             return user;
+        }
+
+        public async Task<User?> LoginByCodeAsync(string userCode, string password)
+        {
+            if (string.IsNullOrWhiteSpace(userCode) || string.IsNullOrEmpty(password)) return null;
+
+            User? user;
+            try
+            {
+                user = await _userRepository.GetByUserCodeAsync(userCode);
+            }
+            catch
+            {
+                return null;
+            }
+            if (user == null) return null;
+
+            try
+            {
+                return BCrypt.Net.BCrypt.Verify(password, user.PasswordHash) ? user : null;
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         public async Task<Result> ActivateAccountAsync(Guid userId, string temporaryPassword, string newPassword)
@@ -141,6 +166,27 @@ namespace BLL.Services
 
             await _userRepository.UpdateAsync(user);
             return Result.Success();
+        }
+
+        public async Task<Result<string>> AdminResetPasswordAsync(Guid userId)
+        {
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user == null) return Result<string>.Failure("User not found.");
+
+            var newPassword = GenerateRandomPassword();
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            user.Status = UserStatus.Inactive; // force change on next login
+            user.UpdatedAt = DateTime.UtcNow;
+
+            await _userRepository.UpdateAsync(user);
+            return Result<string>.Success(newPassword);
+        }
+
+        private static string GenerateRandomPassword()
+        {
+            const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+            var random = new Random();
+            return new string(Enumerable.Repeat(chars, 10).Select(s => s[random.Next(s.Length)]).ToArray());
         }
 
         /// <summary>

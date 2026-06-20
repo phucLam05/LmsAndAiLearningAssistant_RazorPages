@@ -1,0 +1,282 @@
+﻿@page
+@model PL.Pages.Admin.IndexModel
+@{
+    ViewData["Title"] = "Bảng điều khiển Quản trị";
+
+    string FormatBytes(long bytes)
+    {
+        if (bytes <= 0) return "0 B";
+        string[] units = { "B", "KB", "MB", "GB", "TB" };
+        double size = bytes;
+        int unit = 0;
+        while (size >= 1024 && unit < units.Length - 1)
+        {
+            size /= 1024;
+            unit++;
+        }
+        return $"{size:0.##} {units[unit]}";
+    }
+
+    string FormatNumber(long n) => n >= 1000 ? $"{n:N0}" : n.ToString();
+}
+
+<div class="space-y-8">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 select-none">
+        <div>
+            <span class="bg-primary/10 text-primary border border-primary/20 px-2.5 py-0.5 rounded-lg text-xs font-mono font-bold tracking-tight">
+                Bảng điều khiển Admin
+            </span>
+            <h1 class="font-headline-lg text-headline-lg md:font-display-lg md:text-display-lg font-bold text-on-surface mt-2 tracking-tight">
+                Xin chào, @Model.CurrentAdminFullName
+            </h1>
+            <p class="font-body-lg text-body-lg text-on-surface-variant mt-1 flex items-center gap-2">
+                <span class="material-symbols-outlined text-[16px]">workspace_premium</span>
+                <span>Vai trò: <strong class="text-primary">@Model.CurrentAdminRole</strong></span>
+                @if (!string.IsNullOrEmpty(Model.CurrentAdminEmail))
+                {
+                    <span class="text-outline">·</span>
+                    <span class="font-mono">@Model.CurrentAdminEmail</span>
+                }
+            </p>
+        </div>
+        <div class="flex gap-2">
+            <a asp-page="/Admin/Users" class="bg-primary text-on-primary hover:bg-primary-fixed hover:text-on-primary-fixed text-xs font-semibold px-4 py-2.5 rounded-lg shadow-sm flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[16px]">group</span> Quản lý người dùng
+            </a>
+            <a href="/hangfire" target="_blank" class="bg-surface border border-outline-variant hover:bg-surface-container-high text-on-surface text-xs font-semibold px-4 py-2.5 rounded-lg flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[16px]">open_in_new</span> Hangfire
+            </a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 select-none">
+        <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-5 relative overflow-hidden group">
+            <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                <span class="material-symbols-outlined text-[64px] text-primary">group</span>
+            </div>
+            <p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-1">Tổng người dùng</p>
+            <h3 class="font-headline-lg text-headline-lg font-bold text-on-surface">@FormatNumber(Model.Stats.TotalUsers)</h3>
+            <p class="font-label-md text-label-md text-outline mt-3">
+                @Model.Stats.ActiveUsers hoạt động · @Model.Stats.InactiveUsers tạm khóa
+            </p>
+        </div>
+        <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-5 relative overflow-hidden group">
+            <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                <span class="material-symbols-outlined text-[64px] text-tertiary">description</span>
+            </div>
+            <p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-1">Tài liệu tải lên</p>
+            <h3 class="font-headline-lg text-headline-lg font-bold text-on-surface">@FormatNumber(Model.Stats.TotalDocuments)</h3>
+            <p class="font-label-md text-label-md text-outline mt-3">
+                @Model.Stats.ProcessingDocuments đang xử lý · @Model.Stats.FailedDocuments thất bại
+            </p>
+        </div>
+        <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-5 relative overflow-hidden group">
+            <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                <span class="material-symbols-outlined text-[64px] text-secondary">database</span>
+            </div>
+            <p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-1">Dung lượng ổ đĩa</p>
+            <h3 class="font-headline-lg text-headline-lg font-bold text-on-surface">@FormatBytes(Model.Stats.TotalStorageUsedBytes)</h3>
+            <p class="font-label-md text-label-md text-outline mt-3">Đã upload lên Supabase</p>
+        </div>
+        <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-5 relative overflow-hidden group">
+            <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                <span class="material-symbols-outlined text-[64px] text-tertiary">memory</span>
+            </div>
+            <p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-1">AI Tokens tiêu thụ</p>
+            <h3 class="font-headline-lg text-headline-lg font-bold text-on-surface">@FormatNumber(Model.Stats.TotalTokensConsumed)</h3>
+            <p class="font-label-md text-label-md text-outline mt-3">@FormatNumber(Model.Stats.TotalDocumentChunks) chunks</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 select-none">
+        <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-5 flex flex-col">
+            <h4 class="font-headline-sm text-base font-bold text-on-surface mb-4">Phân bổ vai trò</h4>
+            <div class="flex-1 min-h-[260px] flex items-center justify-center">
+                <canvas id="roleChart" class="w-full max-h-[240px]"></canvas>
+            </div>
+        </div>
+        <div class="lg:col-span-2 bg-surface-container-low border border-outline-variant/30 rounded-xl p-5 flex flex-col">
+            <h4 class="font-headline-sm text-base font-bold text-on-surface mb-4">Top môn học theo số tài liệu</h4>
+            @if (Model.Stats.TopSubjects.Any())
+            {
+                <div class="flex-1 min-h-[260px] flex items-center justify-center">
+                    <canvas id="topSubjectsChart" class="w-full max-h-[240px]"></canvas>
+                </div>
+            }
+            else
+            {
+                <div class="flex-1 min-h-[260px] flex items-center justify-center text-center text-on-surface-variant text-xs">
+                    <div>
+                        <span class="material-symbols-outlined text-[40px] text-outline mb-1 block">menu_book</span>
+                        Chưa có môn học nào được tạo.
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 select-none">
+        <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-5 flex flex-col">
+            <h4 class="font-headline-sm text-base font-bold text-on-surface mb-4">Hoạt động tài liệu 7 ngày gần nhất</h4>
+            <div class="flex-1 min-h-[240px] flex items-center justify-center">
+                <canvas id="activityChart" class="w-full max-h-[220px]"></canvas>
+            </div>
+        </div>
+        <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-5">
+            <h4 class="font-headline-sm text-base font-bold text-on-surface mb-3">Top môn học</h4>
+            @if (Model.Stats.TopSubjects.Any())
+            {
+                <ul class="space-y-2">
+                    @foreach (var subject in Model.Stats.TopSubjects)
+                    {
+                        <li class="flex items-center justify-between bg-surface-container border border-outline-variant/20 rounded-lg px-3 py-2">
+                            <div class="min-w-0">
+                                <p class="text-xs font-mono text-primary font-bold">@subject.SubjectCode</p>
+                                <p class="text-sm font-semibold text-on-surface truncate">@subject.Name</p>
+                            </div>
+                            <div class="text-right text-[11px] text-on-surface-variant">
+                                <span class="font-bold text-on-surface">@subject.DocumentCount</span> tài liệu
+                                <br />
+                                <span class="font-bold text-tertiary">@subject.ChunkCount</span> chunks
+                            </div>
+                        </li>
+                    }
+                </ul>
+            }
+            else
+            {
+                <div class="text-center py-8 text-on-surface-variant text-xs">
+                    Chưa có dữ liệu.
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="space-y-4">
+        <h3 class="font-headline-sm text-headline-sm font-bold text-on-surface select-none">Hành động nhanh</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-5 flex flex-col justify-between">
+                <div>
+                    <h4 class="font-headline-sm text-base font-bold text-on-surface mb-2">Quản lý người dùng</h4>
+                    <p class="font-body-md text-xs text-on-surface-variant leading-relaxed mb-4">Tạo mới, đổi mật khẩu, chỉnh sửa, xóa tài khoản người dùng hoặc tải danh sách hàng loạt từ file Excel.</p>
+                </div>
+                <div class="flex gap-2 flex-wrap">
+                    <a asp-page="/Admin/Users" class="bg-primary text-on-primary font-label-md text-xs px-4 py-2 rounded-lg hover:bg-primary-fixed hover:text-on-primary-fixed transition-colors font-semibold shadow-sm">
+                        Mở trang quản lý →
+                    </a>
+                </div>
+            </div>
+            <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-5 flex flex-col justify-between">
+                <div>
+                    <h4 class="font-headline-sm text-base font-bold text-on-surface mb-2">Quản lý môn học</h4>
+                    <p class="font-body-md text-xs text-on-surface-variant leading-relaxed mb-4">Đăng ký môn học mới, thiết lập giảng viên phụ trách và cấu hình các học liệu giảng dạy.</p>
+                </div>
+                <a asp-page="/Subject/Index" class="bg-primary text-on-primary font-label-md text-xs px-4 py-2 rounded-lg hover:bg-primary-fixed hover:text-on-primary-fixed transition-colors font-semibold shadow-sm self-start">
+                    Quản lý môn học →
+                </a>
+            </div>
+            <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-5 flex flex-col justify-between">
+                <div>
+                    <h4 class="font-headline-sm text-base font-bold text-on-surface mb-2">Quản lý tài liệu</h4>
+                    <p class="font-body-md text-xs text-on-surface-variant leading-relaxed mb-4">Theo dõi trạng thái xử lý, thử lại khi thất bại, xóa tài liệu lỗi.</p>
+                </div>
+                <a asp-page="/Admin/Documents" class="bg-primary text-on-primary font-label-md text-xs px-4 py-2 rounded-lg hover:bg-primary-fixed hover:text-on-primary-fixed transition-colors font-semibold shadow-sm self-start">
+                    Mở danh sách →
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const beViet = { family: 'Be Vietnam Pro', size: 11 };
+            const tickColor = '#c1c6d6';
+            const gridColor = 'rgba(65, 71, 84, 0.3)';
+
+            // 1) Role doughnut
+            const roleCtx = document.getElementById('roleChart').getContext('2d');
+            new Chart(roleCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Quản trị viên', 'Giảng viên', 'Sinh viên'],
+                    datasets: [{
+                        data: [@Model.Stats.AdminCount, @Model.Stats.LecturerCount, @Model.Stats.StudentCount],
+                        backgroundColor: ['rgba(255, 180, 171, 0.85)', 'rgba(173, 199, 255, 0.85)', 'rgba(188, 227, 195, 0.85)'],
+                        borderColor: ['#ffb4ab', '#adc7ff', '#bce3c3'],
+                        borderWidth: 2,
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '60%',
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: tickColor, font: beViet, padding: 12 } }
+                    }
+                }
+            });
+
+            // 2) Top subjects bar
+            const subjectEl = document.getElementById('topSubjectsChart');
+            if (subjectEl) {
+                const labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Stats.TopSubjects.Select(s => s.SubjectCode + " - " + s.Name)));
+                const docs = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Stats.TopSubjects.Select(s => s.DocumentCount)));
+                const chunks = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Stats.TopSubjects.Select(s => s.ChunkCount)));
+                new Chart(subjectEl.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            { label: 'Tài liệu', data: docs, backgroundColor: 'rgba(173, 199, 255, 0.85)', borderColor: '#adc7ff', borderWidth: 1, borderRadius: 6 },
+                            { label: 'Chunks', data: chunks, backgroundColor: 'rgba(109, 221, 129, 0.75)', borderColor: '#6ddd81', borderWidth: 1, borderRadius: 6 }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom', labels: { color: tickColor, font: beViet } } },
+                        scales: {
+                            y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: tickColor, font: beViet, precision: 0 } },
+                            x: { grid: { display: false }, ticks: { color: tickColor, font: beViet, maxRotation: 30, minRotation: 0 } }
+                        }
+                    }
+                });
+            }
+
+            // 3) Daily activity line
+            const actEl = document.getElementById('activityChart');
+            const labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Stats.DailyActivity.Select(d => d.Date.ToString("yyyy-MM-dd"))));
+            const values = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Stats.DailyActivity.Select(d => d.Count)));
+            new Chart(actEl.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Số tài liệu tải lên',
+                        data: values,
+                        borderColor: '#adc7ff',
+                        backgroundColor: 'rgba(173, 199, 255, 0.18)',
+                        fill: true,
+                        tension: 0.35,
+                        borderWidth: 2,
+                        pointBackgroundColor: '#adc7ff',
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { color: tickColor, font: beViet } } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: tickColor, font: beViet, precision: 0 } },
+                        x: { grid: { display: false }, ticks: { color: tickColor, font: beViet } }
+                    }
+                }
+            });
+        });
+    </script>
+}

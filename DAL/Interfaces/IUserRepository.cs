@@ -12,6 +12,8 @@ namespace DAL.Interfaces
     {
         Task<User?> GetUserByEmailHashAsync(string emailHash);
 
+        Task<User?> GetByUserCodeAsync(string userCode);
+
         Task<User?> GetByIdAsync(Guid id);
 
         Task<User> AddUserAsync(User user);
@@ -21,6 +23,16 @@ namespace DAL.Interfaces
         Task DeleteAsync(User user);
 
         Task<IReadOnlyList<User>> GetAllUsersAsync();
+
+        Task<IReadOnlyList<User>> QueryUsersAsync(string? search, UserRole? role, UserStatus? status, int pageIndex, int pageSize);
+
+        Task<int> CountUsersAsync(string? search, UserRole? role, UserStatus? status);
+
+        /// <summary>
+        /// Returns an IQueryable&lt;User&gt; so the service layer can compose search/role
+        /// filters with paging (used by Admin → Users page).
+        /// </summary>
+        IQueryable<User> Query();
 
         Task<bool> UserCodeExistsAsync(string userCode);
     }

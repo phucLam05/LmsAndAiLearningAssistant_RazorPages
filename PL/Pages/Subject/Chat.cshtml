@@ -1,0 +1,655 @@
+﻿@page
+@model PL.Pages.Subject.ChatModel
+@using Core.Entities
+@inject IDocumentService DocumentService
+@{
+    ViewData["Title"] = $"{Model.Subject.SubjectCode} - Trợ lý AI";
+    var docs = await DocumentService.GetDocumentsBySubjectIdAsync(Model.Subject.Id);
+
+    var userRoleClaim = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "Student";
+    Enum.TryParse<UserRole>(userRoleClaim, out var uRole);
+    string backAction = uRole == UserRole.Admin ? "/Subject/Index" :
+                        uRole == UserRole.Lecturer ? "/Lecturer/Portal" :
+                        "/Subject/Browse";
+}
+
+@functions {
+    public static string FormatFileSize(long bytes)
+    {
+        if (bytes <= 0) return "0 Bytes";
+        string[] suffixes = { "Bytes", "KB", "MB", "GB" };
+        int counter = 0;
+        double number = bytes;
+        while (Math.Round(number / 1024) >= 1)
+        {
+            number = number / 1024;
+            counter++;
+            if (counter >= suffixes.Length - 1) break;
+        }
+        return $"{number:F1} {suffixes[counter]}";
+    }
+}
+
+<div class="h-[calc(100vh-120px)] flex flex-col gap-4 overflow-hidden">
+
+    <!-- Top header -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 px-1 select-none">
+        <div class="flex items-center gap-3 min-w-0">
+            <a href="@backAction" class="inline-flex items-center gap-1 text-on-surface-variant hover:text-on-surface text-xs transition-colors">
+                <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+                Quay lại
+            </a>
+            <span class="text-outline">/</span>
+            <span class="bg-primary/10 text-primary border border-primary/20 px-2.5 py-0.5 rounded-lg text-xs font-mono font-bold tracking-tight">@Model.Subject.SubjectCode</span>
+            <h3 class="font-bold text-on-surface truncate" title="@Model.Subject.Name">@Model.Subject.Name</h3>
+        </div>
+        <div class="flex items-center gap-3 text-[11px] text-on-surface-variant">
+            <span class="inline-flex items-center gap-1">
+                <span class="material-symbols-outlined text-[14px]">person</span>
+                GV: @(Model.Subject.LecturerName ?? "Chưa phân công")
+            </span>
+            <span class="inline-flex items-center gap-1">
+                <span class="material-symbols-outlined text-[14px]">description</span>
+                @docs.Count tài liệu
+            </span>
+        </div>
+    </div>
+
+    <div class="flex-1 grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)_320px] gap-4 overflow-hidden">
+
+        <!-- LEFT: Documents + Sessions tabs -->
+        <aside class="bg-surface-container-low border border-outline-variant/30 rounded-2xl p-3 flex flex-col overflow-hidden">
+            <div class="flex border-b border-outline-variant/30 mb-3 -mx-1 px-1 select-none" role="tablist">
+                <button id="tabBtnDocs" onclick="switchLeftTab('docs')" class="flex-1 px-3 py-1.5 text-xs font-semibold border-b-2 border-primary text-primary transition-colors" data-tab="docs">
+                    <span class="material-symbols-outlined text-[14px] align-middle">description</span>
+                    Tài liệu
+                </button>
+                <button id="tabBtnSessions" onclick="switchLeftTab('sessions')" class="flex-1 px-3 py-1.5 text-xs font-semibold border-b-2 border-transparent text-on-surface-variant hover:text-on-surface transition-colors" data-tab="sessions">
+                    <span class="material-symbols-outlined text-[14px] align-middle">chat_bubble</span>
+                    Lịch sử
+                </button>
+            </div>
+
+            <!-- Documents tab -->
+            <div id="leftTabDocs" class="flex-1 overflow-y-auto space-y-2 pr-1">
+                <div class="flex justify-between items-center mb-1 px-1">
+                    <h4 class="font-bold text-on-surface text-xs">Nguồn RAG</h4>
+                    @if (docs.Any(d => d.Status == DocumentStatus.Success))
+                    {
+                        <button id="toggleSelectAll" onclick="toggleSelectAll()" class="text-[10px] text-primary hover:text-primary-fixed font-semibold transition-colors">Chọn tất cả</button>
+                    }
+                </div>
+                @if (!docs.Any())
+                {
+                    <div class="text-center py-6 text-on-surface-variant text-xs border border-dashed border-outline-variant/30 rounded-xl bg-surface/20">
+                        <span class="material-symbols-outlined text-[24px] text-outline mb-1 block">description_off</span>
+                        <p>Chưa có tài liệu.</p>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var doc in docs)
+                    {
+                        var ext = System.IO.Path.GetExtension(doc.FileName).ToLower().TrimStart('.');
+                        var icon = ext switch
+                        {
+                            "pdf" => "picture_as_pdf",
+                            "docx" or "doc" => "description",
+                            "pptx" or "ppt" => "slideshow",
+                            "xlsx" or "xls" => "table_chart",
+                            _ => "text_snippet"
+                        };
+                        var iconColor = ext switch
+                        {
+                            "pdf" => "text-error",
+                            "docx" or "doc" => "text-primary",
+                            "pptx" or "ppt" => "text-secondary",
+                            "xlsx" or "xls" => "text-tertiary",
+                            _ => "text-outline"
+                        };
+                        bool isReady = doc.Status == DocumentStatus.Success;
+                        var docStatusText = doc.Status switch
+                        {
+                            DocumentStatus.Success => "Đã Index",
+                            DocumentStatus.Failed => "Thất bại",
+                            DocumentStatus.Processing => "Đang xử lý",
+                            _ => doc.Status.ToString()
+                        };
+
+                        <label class="flex items-center gap-2.5 rounded-xl p-2 transition-all border select-none @(isReady ? "bg-surface/40 hover:bg-surface border-outline-variant/20 cursor-pointer" : "bg-surface/10 border-outline-variant/10 opacity-50 cursor-not-allowed")" title="@doc.FileName">
+                            <span class="material-symbols-outlined text-[18px] @iconColor flex-shrink-0" style="font-variation-settings: 'FILL' 1;">@icon</span>
+                            <div class="min-w-0 flex-1">
+                                <span class="text-[11px] font-semibold text-on-surface truncate block">@doc.FileName</span>
+                                <div class="flex items-center gap-1 mt-0.5">
+                                    <span class="w-1.5 h-1.5 rounded-full @(doc.Status == DocumentStatus.Success ? "bg-tertiary" : doc.Status == DocumentStatus.Failed ? "bg-error" : "bg-yellow-500")"></span>
+                                    <span class="text-[9px] text-outline">@docStatusText</span>
+                                </div>
+                            </div>
+                            @if (isReady)
+                            {
+                                <input type="checkbox" class="doc-checkbox w-3.5 h-3.5 rounded border border-outline/30 bg-surface-container-high checked:bg-primary checked:border-primary cursor-pointer flex-shrink-0 appearance-none focus:outline-none transition-all"
+                                       value="@doc.Id" checked onchange="onDocCheckboxChange()" />
+                            }
+                        </label>
+                    }
+                }
+            </div>
+
+            <!-- sessions tab -->
+            <div id="leftTabSessions" class="flex-1 overflow-y-auto space-y-1.5 pr-1 hidden">
+                <div class="flex justify-between items-center mb-1 px-1">
+                    <h4 class="font-bold text-on-surface text-xs">Các cuộc trò chuyện</h4>
+                    <button onclick="startNewSession()" class="text-[10px] text-primary hover:text-primary-fixed font-semibold flex items-center gap-0.5 transition-colors">
+                        <span class="material-symbols-outlined text-[12px]">add</span> Mới
+                    </button>
+                </div>
+                <div id="sessionsList" class="space-y-1">
+                    @if (!Model.Sessions.Any())
+                    {
+                        <div class="text-center py-6 text-on-surface-variant text-[11px] border border-dashed border-outline-variant/30 rounded-xl bg-surface/20">
+                            <span class="material-symbols-outlined text-[22px] text-outline mb-1 block">forum</span>
+                            Chưa có cuộc trò chuyện.
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var sess in Model.Sessions)
+                        {
+                            <div class="session-item group flex items-center gap-2 rounded-lg p-2 border border-outline-variant/20 hover:border-primary/50 hover:bg-surface transition-colors cursor-pointer @(sess.Id == Model.SessionId ? "bg-primary/10 border-primary/40" : "bg-surface/40")"
+                                 data-session-id="@sess.Id" onclick="loadSession('@sess.Id')">
+                                <span class="material-symbols-outlined text-[16px] @(sess.Id == Model.SessionId ? "text-primary" : "text-outline") flex-shrink-0">@(sess.Id == Model.SessionId ? "chat" : "chat_bubble_outline")</span>
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-[11px] font-semibold text-on-surface truncate" title="@sess.Title">@sess.Title</p>
+                                    <p class="text-[9px] text-outline">@sess.MessageCount tin nhắn • @sess.UpdatedAt.ToString("dd/MM HH:mm")</p>
+                                </div>
+                                <button type="button" onclick="event.stopPropagation(); deleteSession('@sess.Id')" class="opacity-0 group-hover:opacity-100 p-1 text-outline hover:text-error transition-all" title="Xóa">
+                                    <span class="material-symbols-outlined text-[14px]">delete</span>
+                                </button>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        </aside>
+
+        <!-- MIDDLE: Chat area -->
+        <section class="bg-surface border border-outline-variant/30 rounded-2xl flex flex-col overflow-hidden shadow-sm min-w-0">
+            <div class="flex-1 overflow-y-auto p-5 space-y-4 bg-surface-dim/30" id="chatMessages">
+                <div class="flex flex-col items-start w-full gap-1">
+                    <div class="flex items-center gap-2 px-1 select-none">
+                        <span class="material-symbols-outlined text-tertiary text-[16px] filled">smart_toy</span>
+                        <span class="font-bold text-on-surface-variant text-[10px] uppercase tracking-wider">Trợ lý Học tập AI</span>
+                    </div>
+                    <div class="bg-surface text-on-surface text-sm px-4 py-3 rounded-2xl rounded-tl-sm max-w-[90%] border border-outline-variant shadow-sm leading-relaxed">
+                        <p>Xin chào! Tôi sẵn sàng trả lời câu hỏi của bạn dựa trên học liệu được upload ở bảng bên trái. Hãy bắt đầu nhé!</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-4 bg-surface-container-low border-t border-outline-variant/40">
+                <div class="flex gap-2 mb-3 overflow-x-auto pb-1 select-none whitespace-nowrap scrollbar-none" style="scrollbar-width: none;">
+                    <button onclick="setQuery('Tóm tắt tài liệu môn học này')" class="text-[11px] px-3.5 py-1.5 rounded-full border border-outline-variant text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest hover:border-outline transition-all">Tóm tắt tài liệu</button>
+                    <button onclick="setQuery('Những khái niệm cốt lõi nào cần nắm vững?')" class="text-[11px] px-3.5 py-1.5 rounded-full border border-outline-variant text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest hover:border-outline transition-all">Khái niệm cốt lõi</button>
+                    <button onclick="setQuery('Cho ví dụ minh họa')" class="text-[11px] px-3.5 py-1.5 rounded-full border border-outline-variant text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest hover:border-outline transition-all">Cho ví dụ minh họa</button>
+                </div>
+                <form id="chatForm" class="m-0">
+                    @Html.AntiForgeryToken()
+                    <div class="flex items-center justify-between mb-2.5">
+                        <div class="flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[14px] text-outline">psychology</span>
+                            <span class="text-[10px] text-outline uppercase tracking-wider font-bold">Model AI</span>
+                        </div>
+                        <div class="relative">
+                            <select id="modelSelector" class="appearance-none bg-surface-container-highest border border-outline-variant/60 text-on-surface text-xs rounded-lg pl-3 pr-7 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer">
+                                <option value="gemini-2.5-flash" selected>⚡ Gemini 2.5 Flash</option>
+                                <option value="gemini-2.5-flash-lite">🪶 Gemini 2.5 Flash Lite</option>
+                                <option value="gemini-2.0-flash">🔵 Gemini 2.0 Flash</option>
+                                <option value="gemini-3.1-flash-lite">⚡⚡ Gemini 3.1 Flash Lite</option>
+                                <option value="gemini-3.5-flash">✨ Gemini 3.5 Flash</option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                                <span class="material-symbols-outlined text-[14px] text-outline">expand_more</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="relative flex items-end bg-surface-container-highest border border-outline-variant rounded-xl focus-within:ring-1 focus-within:ring-primary focus-within:border-primary transition-all">
+                        <textarea id="userInput" class="flex-1 bg-transparent border-none focus:ring-0 text-on-surface text-sm resize-none py-3 px-3 placeholder-outline/50 max-h-32 min-h-[44px]" placeholder="Hỏi Trợ lý AI về học liệu môn học..." rows="1" autocomplete="off" required></textarea>
+                        <button type="submit" class="p-3 text-tertiary hover:text-tertiary-fixed-dim transition-colors flex items-center justify-center" id="sendBtn">
+                            <span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">send</span>
+                        </button>
+                    </div>
+                </form>
+                <div class="text-center mt-2 select-none">
+                    <span class="text-[10px] text-outline">AI có thể đưa ra câu trả lời không chính xác. Hãy kiểm tra các nguồn thông tin.</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- RIGHT: Sources + Viewer (NotebookLM-style) -->
+        <aside class="bg-surface-container-low border border-outline-variant/30 rounded-2xl flex flex-col overflow-hidden">
+            <div class="px-4 py-3 border-b border-outline-variant/30 flex justify-between items-center">
+                <h4 class="font-bold text-on-surface text-sm flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[16px] text-primary">menu_book</span>
+                    Nguồn tham khảo
+                </h4>
+                <span id="sourceCount" class="text-[10px] text-on-surface-variant font-bold">0</span>
+            </div>
+            <div id="sourceList" class="flex-1 overflow-y-auto p-3 space-y-1.5">
+                <div id="sourceEmpty" class="text-center text-on-surface-variant text-[11px] py-6">
+                    <span class="material-symbols-outlined text-[24px] text-outline mb-1 block">menu_book</span>
+                    Nguồn từ câu trả lời gần nhất sẽ xuất hiện ở đây.
+                </div>
+            </div>
+            <div id="viewerPane" class="hidden border-t border-outline-variant/30 bg-surface-container-lowest">
+                <div class="flex items-center justify-between px-3 py-2 bg-surface-container border-b border-outline-variant/30">
+                    <div class="flex items-center gap-1.5 min-w-0">
+                        <span id="viewerIcon" class="material-symbols-outlined text-[16px] text-primary">picture_as_pdf</span>
+                        <span id="viewerFileName" class="text-[11px] font-semibold text-on-surface truncate">document.pdf</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <a id="viewerOpenNew" href="#" target="_blank" class="text-[10px] text-primary hover:text-primary-fixed font-semibold flex items-center gap-0.5 px-1.5 py-1 rounded">
+                            <span class="material-symbols-outlined text-[12px]">open_in_new</span> Mở
+                        </a>
+                        <button type="button" onclick="closeViewer()" class="text-on-surface-variant hover:text-on-surface p-1">
+                            <span class="material-symbols-outlined text-[14px]">close</span>
+                        </button>
+                    </div>
+                </div>
+                <div id="viewerBody" class="h-[260px] overflow-auto bg-white text-black">
+                    <div id="viewerLoading" class="hidden h-full flex items-center justify-center text-xs text-on-surface-variant">Đang tải tài liệu...</div>
+                    <canvas id="pdfCanvas" class="hidden mx-auto"></canvas>
+                    <iframe id="iframeViewer" class="hidden w-full h-full border-0" sandbox=""></iframe>
+                    <div id="viewerFallback" class="hidden h-full flex flex-col items-center justify-center text-center text-on-surface-variant text-xs p-4 gap-2">
+                        <span class="material-symbols-outlined text-[36px] text-outline">visibility_off</span>
+                        Không thể hiển thị trực tiếp. Vui lòng bấm <strong>Mở</strong> để xem trong tab mới.
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+</div>
+
+<!-- Citation Popover -->
+<div id="citationPopover" class="absolute hidden z-50 max-w-sm bg-surface-container-highest border border-outline-variant/60 rounded-xl shadow-lg p-4 select-none">
+    <div class="flex items-center gap-2 mb-2 pb-1.5 border-b border-outline-variant/30">
+        <span class="w-5 h-5 flex items-center justify-center text-[10px] font-bold rounded-full bg-primary text-on-primary flex-shrink-0" id="popoverIndex">1</span>
+        <span class="text-xs font-semibold text-on-surface truncate flex-1" id="popoverFileName">Tài liệu</span>
+        <span class="text-[10px] text-outline font-medium" id="popoverPageNumber">Trang 1</span>
+    </div>
+    <div class="text-xs text-on-surface-variant leading-relaxed italic line-clamp-6 max-h-48 overflow-y-auto" id="popoverContent">Nội dung...</div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.mjs" type="module"></script>
+    <script>
+        const chatForm = document.getElementById('chatForm');
+        const userInput = document.getElementById('userInput');
+        const chatMessages = document.getElementById('chatMessages');
+        const sendBtn = document.getElementById('sendBtn');
+        const modelSelector = document.getElementById('modelSelector');
+        const subjectId = '@Model.Subject.Id';
+
+        const popover = document.getElementById('citationPopover');
+        let activePopoverTimer = null;
+        if (popover) {
+            popover.addEventListener('mouseenter', () => clearTimeout(activePopoverTimer));
+            popover.addEventListener('mouseleave', hidePopover);
+        }
+
+        function showPopover(element, index, sources) {
+            clearTimeout(activePopoverTimer);
+            if (!popover) return;
+            const source = sources.find(s => s.index === index);
+            if (!source) return;
+            document.getElementById('popoverIndex').textContent = source.index;
+            document.getElementById('popoverFileName').textContent = source.fileName;
+            document.getElementById('popoverPageNumber').textContent = source.pageNumber ? `Trang ${source.pageNumber}` : 'Tài liệu';
+            document.getElementById('popoverContent').textContent = source.content;
+            popover.classList.remove('hidden');
+            const rect = element.getBoundingClientRect();
+            const popoverRect = popover.getBoundingClientRect();
+            let top = rect.top + window.scrollY - popoverRect.height - 10;
+            if (top < window.scrollY + 10) top = rect.bottom + window.scrollY + 10;
+            let left = rect.left + window.scrollX + (rect.width / 2) - (popoverRect.width / 2);
+            if (left < 10) left = 10;
+            if (left + popoverRect.width > window.innerWidth - 10) left = window.innerWidth - popoverRect.width - 10;
+            popover.style.top = `${top}px`;
+            popover.style.left = `${left}px`;
+        }
+        function hidePopover() { activePopoverTimer = setTimeout(() => popover && popover.classList.add('hidden'), 200); }
+
+        userInput.addEventListener('input', function() { this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'; });
+        userInput.addEventListener('keydown', function(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); chatForm.dispatchEvent(new Event('submit')); } });
+        function setQuery(text) { userInput.value = text; userInput.focus(); userInput.style.height = 'auto'; userInput.style.height = (userInput.scrollHeight) + 'px'; }
+
+        function getSelectedDocIds() { return Array.from(document.querySelectorAll('.doc-checkbox:checked')).map(cb => cb.value); }
+        function onDocCheckboxChange() {
+            const selected = getSelectedDocIds();
+            const total = document.querySelectorAll('.doc-checkbox').length;
+            const toggleBtn = document.getElementById('toggleSelectAll');
+            if (toggleBtn) toggleBtn.textContent = selected.length === total ? 'Bỏ chọn tất cả' : 'Chọn tất cả';
+        }
+        function toggleSelectAll() {
+            const checkboxes = document.querySelectorAll('.doc-checkbox');
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            checkboxes.forEach(cb => cb.checked = !allChecked);
+            onDocCheckboxChange();
+        }
+        onDocCheckboxChange();
+
+        // Sources panel
+        const sourceListEl = document.getElementById('sourceList');
+        const sourceEmptyEl = document.getElementById('sourceEmpty');
+        const sourceCountEl = document.getElementById('sourceCount');
+        let currentSources = [];
+
+        function renderSources(sources) {
+            currentSources = sources || [];
+            sourceListEl.innerHTML = '';
+            if (!currentSources.length) {
+                sourceListEl.appendChild(sourceEmptyEl);
+                sourceEmptyEl.classList.remove('hidden');
+                sourceCountEl.textContent = '0';
+                return;
+            }
+            sourceEmptyEl.classList.add('hidden');
+            sourceCountEl.textContent = currentSources.length;
+            currentSources.forEach(s => {
+                const ext = (s.fileName.split('.').pop() || '').toLowerCase();
+                const icon = ext === 'pdf' ? 'picture_as_pdf'
+                    : (ext === 'docx' || ext === 'doc') ? 'description'
+                    : (ext === 'pptx' || ext === 'ppt') ? 'slideshow'
+                    : (ext === 'xlsx' || ext === 'xls') ? 'table_chart' : 'text_snippet';
+                const el = document.createElement('button');
+                el.type = 'button';
+                el.className = 'w-full text-left flex items-start gap-2 rounded-lg p-2 bg-surface/40 hover:bg-surface border border-outline-variant/20 hover:border-outline-variant/40 transition-colors cursor-pointer';
+                el.innerHTML = `
+                    <span class="w-5 h-5 mt-0.5 flex items-center justify-center text-[10px] font-bold rounded-full bg-primary text-on-primary flex-shrink-0">${s.index}</span>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-[14px] text-on-surface-variant">${icon}</span>
+                            <span class="text-[11px] font-semibold text-on-surface truncate" title="${escapeHtml(s.fileName)}">${escapeHtml(s.fileName)}</span>
+                        </div>
+                        ${s.pageNumber ? `<p class="text-[10px] text-outline mt-0.5">Trang ${s.pageNumber}</p>` : `<p class="text-[10px] text-outline mt-0.5">Bấm để mở tài liệu</p>`}
+                        <p class="text-[10px] text-on-surface-variant mt-1 line-clamp-2">${escapeHtml(s.content || '').slice(0, 160)}...</p>
+                    </div>
+                    <span class="material-symbols-outlined text-[14px] text-outline">open_in_new</span>
+                `;
+                el.addEventListener('click', () => openSource(s));
+                sourceListEl.appendChild(el);
+            });
+        }
+
+        // Viewer pane
+        const viewerPane = document.getElementById('viewerPane');
+        const viewerFileName = document.getElementById('viewerFileName');
+        const viewerIcon = document.getElementById('viewerIcon');
+        const viewerOpenNew = document.getElementById('viewerOpenNew');
+        const viewerLoading = document.getElementById('viewerLoading');
+        const pdfCanvas = document.getElementById('pdfCanvas');
+        const iframeViewer = document.getElementById('iframeViewer');
+        const viewerFallback = document.getElementById('viewerFallback');
+
+        function closeViewer() {
+            viewerPane.classList.add('hidden');
+            pdfCanvas.classList.add('hidden');
+            iframeViewer.src = '';
+            iframeViewer.classList.add('hidden');
+            viewerFallback.classList.add('hidden');
+            viewerLoading.classList.add('hidden');
+        }
+
+        function resetViewer() {
+            pdfCanvas.classList.add('hidden');
+            iframeViewer.src = '';
+            iframeViewer.classList.add('hidden');
+            viewerFallback.classList.add('hidden');
+        }
+
+        async function openSource(source) {
+            viewerPane.classList.remove('hidden');
+            viewerFileName.textContent = source.fileName;
+            viewerOpenNew.href = `/Document/ViewOriginal?id=${source.documentId}`;
+            const ext = (source.fileName.split('.').pop() || '').toLowerCase();
+            const icon = ext === 'pdf' ? 'picture_as_pdf'
+                : (ext === 'docx' || ext === 'doc') ? 'description'
+                : (ext === 'pptx' || ext === 'ppt') ? 'slideshow'
+                : (ext === 'xlsx' || ext === 'xls') ? 'table_chart' : 'text_snippet';
+            viewerIcon.textContent = icon;
+            resetViewer();
+            viewerLoading.classList.remove('hidden');
+            const fileUrl = `/Document/ViewOriginal?id=${source.documentId}`;
+            if (ext === 'pdf') {
+                try {
+                    await renderPdfPage(fileUrl, 1);
+                    viewerLoading.classList.add('hidden');
+                    pdfCanvas.classList.remove('hidden');
+                } catch (err) {
+                    viewerLoading.classList.add('hidden');
+                    iframeViewer.src = fileUrl;
+                    iframeViewer.classList.remove('hidden');
+                }
+            } else {
+                iframeViewer.src = fileUrl;
+                viewerLoading.classList.add('hidden');
+                iframeViewer.classList.remove('hidden');
+            }
+        }
+
+        async function renderPdfPage(url, pageNum) {
+            const pdfjsLib = await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.mjs');
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.mjs';
+            const loadingTask = pdfjsLib.getDocument(url);
+            const pdf = await loadingTask.promise;
+            const page = await pdf.getPage(pageNum);
+            const viewport = page.getViewport({ scale: 1.3 });
+            const ctx = pdfCanvas.getContext('2d');
+            pdfCanvas.width = viewport.width;
+            pdfCanvas.height = viewport.height;
+            await page.render({ canvasContext: ctx, viewport }).promise;
+        }
+
+        // Tabs (Documents / Sessions)
+        function switchLeftTab(name) {
+            const docs = document.getElementById('leftTabDocs');
+            const sess = document.getElementById('leftTabSessions');
+            const btnD = document.getElementById('tabBtnDocs');
+            const btnS = document.getElementById('tabBtnSessions');
+            if (name === 'docs') {
+                docs.classList.remove('hidden'); sess.classList.add('hidden');
+                btnD.classList.add('border-primary', 'text-primary'); btnD.classList.remove('border-transparent', 'text-on-surface-variant');
+                btnS.classList.remove('border-primary', 'text-primary'); btnS.classList.add('border-transparent', 'text-on-surface-variant');
+            } else {
+                sess.classList.remove('hidden'); docs.classList.add('hidden');
+                btnS.classList.add('border-primary', 'text-primary'); btnS.classList.remove('border-transparent', 'text-on-surface-variant');
+                btnD.classList.remove('border-primary', 'text-primary'); btnD.classList.add('border-transparent', 'text-on-surface-variant');
+            }
+        }
+
+        // Session management
+        let currentSessionId = @(Model.SessionId.HasValue ? $"'{Model.SessionId.Value}'" : "null");
+
+        function startNewSession() {
+            currentSessionId = null;
+            chatMessages.innerHTML = `
+                <div class="flex flex-col items-start w-full gap-1">
+                    <div class="flex items-center gap-2 px-1 select-none">
+                        <span class="material-symbols-outlined text-tertiary text-[16px] filled">smart_toy</span>
+                        <span class="font-bold text-on-surface-variant text-[10px] uppercase tracking-wider">Trợ lý Học tập AI</span>
+                    </div>
+                    <div class="bg-surface text-on-surface text-sm px-4 py-3 rounded-2xl rounded-tl-sm max-w-[90%] border border-outline-variant shadow-sm leading-relaxed">
+                        <p>Xin chào! Tôi sẵn sàng trả lời câu hỏi mới của bạn.</p>
+                    </div>
+                </div>`;
+            currentSources = [];
+            renderSources([]);
+            closeViewer();
+            switchLeftTab('docs');
+            document.querySelectorAll('.session-item').forEach(el => el.classList.remove('bg-primary/10', 'border-primary/40'));
+            document.querySelectorAll('.session-item').forEach(el => {
+                el.classList.add('bg-surface/40');
+                el.querySelector('.material-symbols-outlined')?.classList.replace('text-primary', 'text-outline');
+            });
+        }
+
+        function loadSession(id) {
+            window.location.href = `?subjectId=${subjectId}&sessionId=${id}`;
+        }
+
+        async function deleteSession(id) {
+            if (!confirm('Xóa cuộc trò chuyện này? Tin nhắn sẽ bị mất vĩnh viễn.')) return;
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            try {
+                const fd = new FormData();
+                fd.append('sessionId', id);
+                const r = await fetch('?handler=DeleteSession', {
+                    method: 'POST',
+                    body: fd,
+                    headers: { 'RequestVerificationToken': token }
+                });
+                const j = await r.json();
+                if (j.success) {
+                    document.querySelector(`.session-item[data-session-id="${id}"]`)?.remove();
+                    if (currentSessionId === id) startNewSession();
+                } else {
+                    showNotification(j.message || 'Lỗi xóa session', 'error');
+                }
+            } catch (e) {
+                showNotification('Lỗi: ' + e.message, 'error');
+            }
+        }
+
+        // Initial messages
+        @{
+            var lastAssistantMsg = Model.InitialMessages.LastOrDefault(m => m.Role == "assistant");
+            var lastAssistantSourcesJson = lastAssistantMsg?.Sources != null
+                ? System.Text.Json.JsonSerializer.Serialize(lastAssistantMsg.Sources)
+                : "[]";
+        }
+        @if (Model.InitialMessages.Any())
+        {
+            <text>chatMessages.innerHTML = '';
+            @foreach (var m in Model.InitialMessages)
+            {
+                <text>appendMessage(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(m.Content)), '@m.Role', @(m.Sources != null ? Html.Raw(System.Text.Json.JsonSerializer.Serialize(m.Sources)) : "[]"));</text>
+            }
+            renderSources(@Html.Raw(lastAssistantSourcesJson));
+            scrollToBottom();
+            switchLeftTab('sessions');
+            </text>
+        }
+
+        // Submit chat
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const query = userInput.value.trim();
+            if (!query) return;
+            userInput.value = '';
+            userInput.disabled = true;
+            sendBtn.disabled = true;
+            userInput.style.height = 'auto';
+            appendMessage(query, 'user');
+            scrollToBottom();
+            const typingId = appendTypingIndicator();
+            scrollToBottom();
+            try {
+                const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+                const selectedModel = modelSelector ? modelSelector.value : 'gemini-2.5-flash';
+                const selectedDocIds = getSelectedDocIds().join(',');
+                const fd = new FormData();
+                fd.append('subjectId', subjectId);
+                fd.append('message', query);
+                fd.append('model', selectedModel);
+                fd.append('documentIds', selectedDocIds);
+                if (currentSessionId) fd.append('sessionId', currentSessionId);
+                const response = await fetch('?handler=SendMessage', {
+                    method: 'POST',
+                    body: fd,
+                    headers: { 'RequestVerificationToken': token }
+                });
+                const data = await response.json();
+                removeTypingIndicator(typingId);
+                if (data.success) {
+                    currentSessionId = data.sessionId || currentSessionId;
+                    appendMessage(data.reply, 'ai', data.sources);
+                    renderSources(data.sources);
+                    if (data.sessionId && !document.querySelector(`.session-item[data-session-id="${data.sessionId}"]`)) {
+                        setTimeout(() => window.location.reload(), 1200);
+                    }
+                } else {
+                    appendMessage(`Lỗi hệ thống: ${data.message}`, 'ai');
+                }
+            } catch (err) {
+                removeTypingIndicator(typingId);
+                appendMessage(`Lỗi đường truyền: ${err.message}`, 'ai');
+            } finally {
+                userInput.disabled = false;
+                sendBtn.disabled = false;
+                userInput.focus();
+                scrollToBottom();
+            }
+        });
+
+        function appendMessage(text, sender, sources = []) {
+            const messageWrapper = document.createElement('div');
+            messageWrapper.classList.add('flex', 'flex-col', sender === 'user' ? 'items-end' : 'items-start', 'w-full', 'gap-1');
+            if (sender === 'ai') {
+                let html = marked.parse(text);
+                html = html.replace(/\[(\d+)\]/g, (match, number) => {
+                    const idx = parseInt(number);
+                    const sourceExists = sources && sources.some(s => s.index === idx);
+                    if (sourceExists) {
+                        return `<button type="button" class="citation-badge inline-flex items-center justify-center w-5 h-5 ml-1 mr-0.5 text-[9px] font-bold rounded-full bg-primary/15 text-primary hover:bg-primary/25 border border-primary/20 cursor-pointer select-none transition-all align-middle" style="margin-top: -3px;" data-index="${idx}">${idx}</button>`;
+                    }
+                    return match;
+                });
+                messageWrapper.innerHTML = `
+                    <div class="flex items-center gap-2 px-1 select-none">
+                        <span class="material-symbols-outlined text-tertiary text-[16px] filled">smart_toy</span>
+                        <span class="font-bold text-on-surface-variant text-[10px] uppercase tracking-wider">Trợ lý AI</span>
+                    </div>
+                    <div class="bg-surface text-on-surface text-sm px-4 py-3 rounded-2xl rounded-tl-sm max-w-full border border-outline-variant shadow-sm leading-relaxed">
+                        <div class="prose max-w-none text-sm leading-relaxed">${html}</div>
+                    </div>
+                `;
+            } else {
+                messageWrapper.innerHTML = `
+                    <div class="bg-surface-container-highest border border-outline-variant text-on-surface text-sm px-4 py-2.5 rounded-2xl rounded-tr-sm max-w-[75%] leading-relaxed shadow-sm">
+                        ${escapeHtml(text)}
+                    </div>
+                `;
+            }
+            chatMessages.appendChild(messageWrapper);
+            if (sender === 'ai' && sources && sources.length > 0) {
+                const badges = messageWrapper.querySelectorAll('.citation-badge');
+                badges.forEach(badge => {
+                    const idx = parseInt(badge.getAttribute('data-index'));
+                    badge.addEventListener('mouseenter', () => showPopover(badge, idx, sources));
+                    badge.addEventListener('mouseleave', hidePopover);
+                });
+            }
+        }
+
+        function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+        function appendTypingIndicator() {
+            const id = 'typing-' + Date.now();
+            const w = document.createElement('div');
+            w.id = id;
+            w.className = 'flex flex-col items-start w-full gap-1';
+            w.innerHTML = `
+                <div class="flex items-center gap-2 px-1 select-none"><span class="material-symbols-outlined text-tertiary text-[16px] filled">smart_toy</span></div>
+                <div class="bg-surface text-on-surface text-sm px-4 py-3 rounded-2xl rounded-tl-sm border border-outline-variant flex gap-1 items-center h-10 w-16 shadow-sm select-none">
+                    <div class="w-1.5 h-1.5 bg-tertiary rounded-full animate-bounce" style="animation-delay: 0ms"></div>
+                    <div class="w-1.5 h-1.5 bg-tertiary rounded-full animate-bounce" style="animation-delay: 150ms"></div>
+                    <div class="w-1.5 h-1.5 bg-tertiary rounded-full animate-bounce" style="animation-delay: 300ms"></div>
+                </div>
+            `;
+            chatMessages.appendChild(w);
+            return id;
+        }
+        function removeTypingIndicator(id) { const el = document.getElementById(id); if (el) el.remove(); }
+        function scrollToBottom() { chatMessages.scrollTop = chatMessages.scrollHeight; }
+    </script>
+}

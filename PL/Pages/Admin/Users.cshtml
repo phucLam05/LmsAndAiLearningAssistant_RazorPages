@@ -1,0 +1,457 @@
+﻿@page
+@model PL.Pages.Admin.UsersModel
+@{
+    ViewData["Title"] = "Quản lý Người dùng";
+}
+
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+    <div class="select-none">
+        <span class="bg-primary/10 text-primary border border-primary/20 px-2.5 py-0.5 rounded-lg text-xs font-mono font-bold tracking-tight">Bảng điều khiển Admin</span>
+        <h1 class="font-headline-lg text-headline-lg md:font-display-lg md:text-display-lg font-bold text-on-surface mt-2 tracking-tight">Quản lý Người dùng</h1>
+        <p class="font-body-lg text-body-lg text-on-surface-variant mt-1 font-medium">Tạo lập tài khoản học viên, giảng viên và tải lên tệp tin danh sách hàng loạt.</p>
+    </div>
+
+    <button type="button" onclick="openModal('addUserModal')" class="bg-primary text-on-primary font-label-md text-label-md px-5 py-2.5 rounded-full hover:bg-primary-fixed hover:text-on-primary-fixed transition-all duration-200 flex items-center gap-2 font-medium shadow-sm hover:scale-[1.02]">
+        <span class="material-symbols-outlined text-[20px]">person_add</span>
+        Thêm người dùng mới
+    </button>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div class="lg:col-span-2 space-y-6">
+        <div class="bg-surface-container-low border border-outline-variant/30 rounded-2xl p-5 shadow-sm">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 border-b border-outline-variant/30 pb-4 select-none">
+                <h3 class="font-headline-sm text-headline-sm font-bold text-on-surface">Danh sách tài khoản</h3>
+                <form method="get" class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                    <input type="hidden" name="pageIndex" value="1" />
+                    <div class="relative w-full sm:w-[220px]">
+                        <span class="material-symbols-outlined absolute left-2.5 top-2.5 text-outline text-[18px]">search</span>
+                        <input type="text" name="search" class="bg-surface border border-outline-variant/50 rounded-lg pl-9 pr-3 py-1.5 text-on-surface placeholder:text-outline/40 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full text-xs" placeholder="Tìm kiếm họ tên, email, mã số..." value="@Model.Search" />
+                    </div>
+                    <select name="role" class="bg-surface border border-outline-variant/50 rounded-lg px-3 py-1.5 text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-xs cursor-pointer" onchange="this.form.submit()">
+                        <option value="" selected="@(string.IsNullOrEmpty(Model.Role) ? "selected" : null)">Tất cả vai trò</option>
+                        <option value="Admin" selected="@(Model.Role == "Admin" ? "selected" : null)">Quản trị viên</option>
+                        <option value="Lecturer" selected="@(Model.Role == "Lecturer" ? "selected" : null)">Giảng viên</option>
+                        <option value="Student" selected="@(Model.Role == "Student" ? "selected" : null)">Sinh viên</option>
+                    </select>
+                    @if (!string.IsNullOrEmpty(Model.Search) || !string.IsNullOrEmpty(Model.Role))
+                    {
+                        <a asp-page="/Admin/Users" class="p-1.5 bg-surface border border-outline-variant/50 hover:bg-surface-container-high rounded-lg text-on-surface transition-colors" title="Xóa bộ lọc">
+                            <span class="material-symbols-outlined text-[18px] block">close</span>
+                        </a>
+                    }
+                </form>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-surface-container-lowest border-b border-outline-variant/50 select-none">
+                            <th class="p-4 font-label-md text-label-md font-semibold text-on-surface-variant uppercase tracking-wider">Thông tin người dùng</th>
+                            <th class="p-4 font-label-md text-label-md font-semibold text-on-surface-variant uppercase tracking-wider">Mã số (User Code)</th>
+                            <th class="p-4 font-label-md text-label-md font-semibold text-on-surface-variant uppercase tracking-wider">Vai trò</th>
+                            <th class="p-4 font-label-md text-label-md font-semibold text-on-surface-variant uppercase tracking-wider">Trạng thái</th>
+                            <th class="p-4 font-label-md text-label-md font-semibold text-on-surface-variant w-32"></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-outline-variant/30">
+                        @if (!Model.Page.Items.Any())
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center py-12 text-on-surface-variant select-none">
+                                    <span class="material-symbols-outlined text-[48px] text-outline mb-2 block">group_off</span>
+                                    <h5 class="font-headline-sm text-sm font-bold">Không tìm thấy người dùng</h5>
+                                    <p class="text-xs text-outline max-w-sm mx-auto mt-1">Không có tài khoản nào phù hợp với bộ lọc tìm kiếm của bạn.</p>
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var user in Model.Page.Items)
+                            {
+                                var roleBadgeClass = user.Role switch
+                                {
+                                    "Admin" => "bg-error-container/20 border-error/20 text-error",
+                                    "Lecturer" => "bg-blue-500/10 border-blue-500/20 text-blue-500",
+                                    _ => "bg-tertiary-container/20 border-tertiary/20 text-tertiary"
+                                };
+                                var statusBadgeClass = user.Status == "Active" ? "bg-tertiary-container/20 border-tertiary/20 text-tertiary" : "bg-yellow-500/10 border-yellow-500/20 text-yellow-500";
+                                <tr class="hover:bg-surface-container/30 transition-colors group">
+                                    <td class="p-4">
+                                        <div>
+                                            <div class="font-body-md text-sm font-bold text-on-surface">@user.FullName</div>
+                                            <div class="text-xs text-outline font-medium">@user.Email</div>
+                                        </div>
+                                    </td>
+                                    <td class="p-4 font-mono text-xs text-on-surface-variant select-all">@(string.IsNullOrEmpty(user.StudentCode) ? "N/A" : user.StudentCode)</td>
+                                    <td class="p-4 select-none">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded border text-[10px] font-bold tracking-wide @roleBadgeClass">@user.Role</span>
+                                    </td>
+                                    <td class="p-4 select-none">
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[10px] font-bold @statusBadgeClass">
+                                            <span class="w-1.5 h-1.5 rounded-full @(user.Status == "Active" ? "bg-tertiary animate-pulse" : "bg-yellow-500")"></span>
+                                            @(user.Status == "Active" ? "Hoạt động" : "Tạm khóa")
+                                        </span>
+                                    </td>
+                                    <td class="p-4">
+                                        <div class="flex justify-end gap-2 items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button type="button" onclick="prepareEditModal('@user.Id', '@user.FullName', '@user.Email', '@user.Role', '@user.StudentCode', '@user.Status')" class="p-1.5 bg-surface border border-outline-variant hover:bg-surface-container-high rounded text-on-surface transition-colors" title="Sửa thông tin">
+                                                <span class="material-symbols-outlined text-[16px] block">edit</span>
+                                            </button>
+                                            <button type="button" onclick="openResetPasswordModal('@user.Id', '@user.FullName', '@user.Email')" class="p-1.5 bg-surface border border-outline-variant hover:bg-amber-500/10 rounded text-amber-400 transition-colors" title="Đặt lại mật khẩu">
+                                                <span class="material-symbols-outlined text-[16px] block">key</span>
+                                            </button>
+                                            @if (user.Email != User.Identity?.Name)
+                                            {
+                                                <form method="post" asp-page-handler="DeleteUser" asp-route-id="@user.Id" class="inline" data-confirm="Bạn có chắc chắn muốn xóa tài khoản @user.FullName?">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="p-1.5 bg-surface border border-outline-variant hover:bg-error-container/20 rounded text-error transition-colors" title="Xóa tài khoản">
+                                                        <span class="material-symbols-outlined text-[16px] block">delete</span>
+                                                    </button>
+                                                </form>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+            @{
+                ViewData["PagedResult"] = Model.Page;
+            }
+            <partial name="_Pager" />
+        </div>
+    </div>
+
+    <div class="lg:col-span-1 space-y-6">
+        <div class="bg-surface-container-low border border-outline-variant/30 rounded-2xl p-5 sticky top-6">
+            <div class="flex justify-between items-center mb-3 border-b border-outline-variant/30 pb-3 select-none">
+                <h4 class="font-headline-sm text-base font-bold text-on-surface">Nhập danh sách</h4>
+                <button class="text-tertiary hover:text-tertiary-fixed-dim transition-colors flex items-center gap-1 text-[11px] font-semibold" onclick="downloadSampleExcel()">
+                    <span class="material-symbols-outlined text-[16px]">download</span> Mẫu Excel
+                </button>
+            </div>
+            <p class="font-body-md text-xs text-on-surface-variant mb-4 select-none">Nhập học viên hàng loạt từ tệp Excel. Tài khoản mới sẽ buộc phải đặt lại mật khẩu ở lần đăng nhập đầu tiên.</p>
+
+            <div class="border-2 border-dashed border-outline-variant hover:border-primary/50 hover:bg-surface-container/40 transition-all rounded-xl p-6 text-center cursor-pointer flex flex-col items-center justify-center select-none mb-4" id="excelDropzone">
+                <span class="material-symbols-outlined text-[40px] text-outline mb-1.5">upload_file</span>
+                <h6 class="font-label-md text-label-md text-on-surface font-semibold">Kéo thả tệp tin Excel sinh viên</h6>
+                <p class="text-[10px] text-outline mt-0.5">Chỉ hỗ trợ định dạng .xlsx hoặc .xls</p>
+                <input type="file" id="excelFile" accept=".xlsx, .xls" class="hidden" />
+            </div>
+
+            <div id="selectedExcelCard" class="bg-surface-container border border-tertiary/20 p-3 rounded-xl flex items-center justify-between select-none hidden">
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <span class="material-symbols-outlined text-[24px] text-tertiary filled">table_chart</span>
+                    <div class="min-w-0">
+                        <strong id="excelFileName" class="text-on-surface text-xs font-semibold block truncate max-w-[150px]">student_list.xlsx</strong>
+                        <span id="excelFileSize" class="text-[10px] text-outline block">12.4 KB</span>
+                    </div>
+                </div>
+                <button type="button" class="text-on-surface-variant hover:text-on-surface p-1 rounded" onclick="resetExcelImport()">
+                    <span class="material-symbols-outlined text-[18px] block">close</span>
+                </button>
+            </div>
+
+            <div id="importProgressSection" class="hidden space-y-1.5 my-3 select-none">
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-primary font-semibold" id="progressStatusText">Đang phân tích tệp...</span>
+                    <span class="font-mono" id="progressPercent">0%</span>
+                </div>
+                <div class="w-full bg-surface-container-high rounded-full h-1.5 overflow-hidden">
+                    <div class="bg-primary h-1.5 rounded-full transition-all duration-200" id="importProgressBar" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div id="importResultsSection" class="hidden space-y-3 pt-3 border-t border-outline-variant/30">
+                <div class="flex justify-between items-center select-none">
+                    <h6 class="font-label-md text-xs font-bold text-on-surface">Kết quả phân tích hàng loạt</h6>
+                    <span class="bg-tertiary-container/20 border border-tertiary/20 px-2 py-0.5 rounded text-[10px] font-bold text-tertiary" id="importSummaryBadge">0 Thành công</span>
+                </div>
+                <div id="importResultsList" class="max-h-[180px] overflow-y-auto space-y-2 pr-1"></div>
+                <button type="button" class="w-full bg-primary hover:bg-primary/95 text-on-primary font-bold py-2.5 px-4 rounded-xl shadow-md transition-all duration-200 flex items-center justify-center gap-2 text-xs font-semibold hover:scale-[1.01]" onclick="saveImportResults()" id="btnSaveImport" disabled>
+                    <span class="material-symbols-outlined text-[18px]">check_circle</span>
+                    Lưu danh sách tài khoản hợp lệ
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Add User -->
+<div id="addUserModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 hidden select-none animate-fade-in">
+    <div class="bg-surface-container-low border border-outline-variant/40 rounded-2xl w-full max-w-[440px] overflow-hidden shadow-2xl">
+        <form method="post" asp-page-handler="CreateUser" class="m-0">
+            @Html.AntiForgeryToken()
+            <div class="px-6 py-4 border-b border-outline-variant/30 flex justify-between items-center">
+                <h5 class="font-headline-sm text-base font-bold text-on-surface">Tạo tài khoản mới</h5>
+                <button type="button" onclick="closeModal('addUserModal')" class="text-on-surface-variant hover:text-on-surface">
+                    <span class="material-symbols-outlined text-[20px] block">close</span>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div class="space-y-1">
+                    <label for="createFullName" class="block text-label-md font-bold text-on-surface-variant text-[11px]">Họ và tên</label>
+                    <input type="text" class="bg-surface border border-outline-variant/50 rounded-lg px-3 py-2 text-on-surface placeholder:text-outline/40 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full text-xs" id="createFullName" name="fullName" placeholder="VD: Nguyễn Văn A" required />
+                </div>
+                <div class="space-y-1">
+                    <label for="createEmail" class="block text-label-md font-bold text-on-surface-variant text-[11px]">Địa chỉ Email</label>
+                    <input type="email" class="bg-surface border border-outline-variant/50 rounded-lg px-3 py-2 text-on-surface placeholder:text-outline/40 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full text-xs" id="createEmail" name="email" placeholder="VD: nguyenvana@example.com" required />
+                </div>
+                <div class="space-y-1">
+                    <label for="createRole" class="block text-label-md font-bold text-on-surface-variant text-[11px]">Vai trò tài khoản</label>
+                    <select class="bg-surface border border-outline-variant/50 rounded-lg px-3 py-2 text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full text-xs" id="createRole" name="role" onchange="toggleStudentCodeField(this, 'createCodeContainer')">
+                        <option value="Student">Sinh viên</option>
+                        <option value="Lecturer">Giảng viên</option>
+                        <option value="Admin">Quản trị viên</option>
+                    </select>
+                </div>
+                <div class="space-y-1" id="createCodeContainer">
+                    <label for="createStudentCode" class="block text-label-md font-bold text-on-surface-variant text-[11px]">Mã số (User Code)</label>
+                    <input type="text" class="bg-surface border border-outline-variant/50 rounded-lg px-3 py-2 text-on-surface placeholder:text-outline/40 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full text-xs" id="createStudentCode" name="studentCode" placeholder="VD: HE170123 hoặc GV12345" />
+                    <p id="createCodeHelper" class="text-[10px] text-on-surface-variant mt-1">Mã số viên chức (GV + 4-6 số) là bắt buộc cho Giảng viên.</p>
+                </div>
+                <label class="flex items-center gap-2 pt-2 cursor-pointer select-none">
+                    <input type="checkbox" class="rounded border-outline-variant bg-surface text-primary focus:ring-primary w-4 h-4" id="createMustChange" name="mustChangePassword" value="true" checked />
+                    <span class="text-xs text-on-surface-variant">Buộc đặt lại mật khẩu ở lần đăng nhập đầu tiên</span>
+                </label>
+            </div>
+            <div class="px-6 py-4 border-t border-outline-variant/30 flex justify-end gap-2">
+                <button type="button" onclick="closeModal('addUserModal')" class="bg-surface border border-outline-variant hover:bg-surface-container-high text-on-surface px-4 py-2 rounded-lg font-label-md text-xs transition-colors">Hủy</button>
+                <button type="submit" class="bg-primary text-on-primary hover:bg-primary-fixed hover:text-on-primary-fixed px-4 py-2 rounded-lg font-label-md text-xs font-semibold transition-colors">Tạo người dùng</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Reset Password -->
+<div id="resetPasswordModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 hidden select-none animate-fade-in">
+    <div class="bg-surface-container-low border border-outline-variant/40 rounded-2xl w-full max-w-[440px] overflow-hidden shadow-2xl">
+        <form method="post" asp-page-handler="ResetPassword" class="m-0">
+            @Html.AntiForgeryToken()
+            <input type="hidden" id="resetPasswordUserId" name="id" />
+            <div class="px-6 py-4 border-b border-outline-variant/30 flex justify-between items-center">
+                <h5 class="font-headline-sm text-base font-bold text-on-surface">Đặt lại mật khẩu</h5>
+                <button type="button" onclick="closeModal('resetPasswordModal')" class="text-on-surface-variant hover:text-on-surface">
+                    <span class="material-symbols-outlined text-[20px] block">close</span>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div class="bg-surface-container border border-amber-500/20 rounded-lg p-3 text-xs text-on-surface-variant">
+                    Tài khoản: <strong id="resetPasswordTarget" class="text-on-surface font-semibold"></strong>
+                    <span class="block text-[10px] mt-0.5">Mật khẩu mới sẽ được gửi qua email cho người dùng. Tài khoản sẽ được kích hoạt ngay lập tức.</span>
+                </div>
+                <div class="space-y-1">
+                    <label for="resetPasswordNew" class="block text-label-md font-bold text-on-surface-variant text-[11px]">Mật khẩu mới (tối thiểu 6 ký tự)</label>
+                    <input type="text" class="bg-surface border border-outline-variant/50 rounded-lg px-3 py-2 text-on-surface placeholder:text-outline/40 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full text-xs font-mono" id="resetPasswordNew" name="newPassword" placeholder="VD: Abc@1234" required minlength="6" />
+                </div>
+                <div class="flex gap-2">
+                    <button type="button" onclick="generateRandomPassword()" class="text-xs bg-surface border border-outline-variant/50 hover:bg-surface-container-high text-primary font-semibold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[14px]">autorenew</span> Tạo ngẫu nhiên
+                    </button>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-outline-variant/30 flex justify-end gap-2">
+                <button type="button" onclick="closeModal('resetPasswordModal')" class="bg-surface border border-outline-variant hover:bg-surface-container-high text-on-surface px-4 py-2 rounded-lg font-label-md text-xs transition-colors">Hủy</button>
+                <button type="submit" class="bg-primary text-on-primary hover:bg-primary-fixed hover:text-on-primary-fixed px-4 py-2 rounded-lg font-label-md text-xs font-semibold transition-colors">Đặt lại mật khẩu</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Edit User -->
+<div id="editUserModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 hidden select-none animate-fade-in">
+    <div class="bg-surface-container-low border border-outline-variant/40 rounded-2xl w-full max-w-[440px] overflow-hidden shadow-2xl">
+        <form method="post" asp-page-handler="EditUser" class="m-0">
+            @Html.AntiForgeryToken()
+            <input type="hidden" id="editUserId" name="id" />
+            <div class="px-6 py-4 border-b border-outline-variant/30 flex justify-between items-center">
+                <h5 class="font-headline-sm text-base font-bold text-on-surface">Chỉnh sửa tài khoản</h5>
+                <button type="button" onclick="closeModal('editUserModal')" class="text-on-surface-variant hover:text-on-surface">
+                    <span class="material-symbols-outlined text-[20px] block">close</span>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div class="space-y-1">
+                    <label for="editFullName" class="block text-label-md font-bold text-on-surface-variant text-[11px]">Họ và tên</label>
+                    <input type="text" class="bg-surface border border-outline-variant/50 rounded-lg px-3 py-2 text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full text-xs" id="editFullName" name="fullName" required />
+                </div>
+                <div class="space-y-1">
+                    <label for="editEmail" class="block text-label-md font-bold text-on-surface-variant text-[11px]">Địa chỉ Email</label>
+                    <input type="email" class="bg-surface border border-outline-variant/50 rounded-lg px-3 py-2 text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full text-xs" id="editEmail" name="email" required readonly />
+                </div>
+                <div class="space-y-1">
+                    <label for="editRole" class="block text-label-md font-bold text-on-surface-variant text-[11px]">Vai trò tài khoản</label>
+                    <select class="bg-surface border border-outline-variant/50 rounded-lg px-3 py-2 text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full text-xs" id="editRole" name="role">
+                        <option value="Student">Sinh viên</option>
+                        <option value="Lecturer">Giảng viên</option>
+                        <option value="Admin">Quản trị viên</option>
+                    </select>
+                </div>
+                <div class="space-y-1">
+                    <label for="editStatus" class="block text-label-md font-bold text-on-surface-variant text-[11px]">Trạng thái</label>
+                    <select class="bg-surface border border-outline-variant/50 rounded-lg px-3 py-2 text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full text-xs" id="editStatus" name="status">
+                        <option value="Active">Hoạt động</option>
+                        <option value="Inactive">Tạm khóa</option>
+                    </select>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-outline-variant/30 flex justify-end gap-2">
+                <button type="button" onclick="closeModal('editUserModal')" class="bg-surface border border-outline-variant hover:bg-surface-container-high text-on-surface px-4 py-2 rounded-lg font-label-md text-xs transition-colors">Hủy</button>
+                <button type="submit" class="bg-primary text-on-primary hover:bg-primary-fixed hover:text-on-primary-fixed px-4 py-2 rounded-lg font-label-md text-xs font-semibold transition-colors">Lưu thay đổi</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script>
+        function openModal(id) { document.getElementById(id)?.classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id)?.classList.add('hidden'); }
+        function prepareEditModal(id, fullName, email, role, code, status) {
+            document.getElementById('editUserId').value = id;
+            document.getElementById('editFullName').value = fullName;
+            document.getElementById('editEmail').value = email;
+            document.getElementById('editRole').value = role;
+            document.getElementById('editStatus').value = status;
+            openModal('editUserModal');
+        }
+        function openResetPasswordModal(id, fullName, email) {
+            document.getElementById('resetPasswordUserId').value = id;
+            document.getElementById('resetPasswordTarget').textContent = fullName + ' (' + email + ')';
+            document.getElementById('resetPasswordNew').value = '';
+            openModal('resetPasswordModal');
+        }
+        function generateRandomPassword() {
+            const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@@##$$%%";
+            let pw = '';
+            for (let i = 0; i < 10; i++) pw += chars[Math.floor(Math.random() * chars.length)];
+            document.getElementById('resetPasswordNew').value = pw;
+        }
+        function toggleStudentCodeField(sel, containerId) {
+            const helper = document.getElementById('createCodeHelper');
+            const input = document.getElementById('createStudentCode');
+            if (sel.value === 'Lecturer') {
+                helper.textContent = 'Bắt buộc: mã giảng viên phải có dạng GV + 4-6 chữ số (VD: GV12345).';
+                helper.classList.add('text-amber-400');
+                input.required = true;
+                input.placeholder = 'VD: GV12345';
+            } else {
+                helper.textContent = 'Sinh viên có thể bỏ trống — hệ thống sẽ tự sinh mã HE.';
+                helper.classList.remove('text-amber-400');
+                input.required = false;
+                input.placeholder = 'VD: HE170123';
+            }
+        }
+        function downloadSampleExcel() {
+            const data = [
+                ['Họ và tên', 'Email', 'Mã số'],
+                ['Nguyễn Văn A', 'a.nv@example.com', 'HE170001'],
+                ['Trần Thị B', 'b.tt@example.com', 'HE170002']
+            ];
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Students');
+            XLSX.writeFile(wb, 'mau_sinhvien.xlsx');
+        }
+
+        // Drag-drop / preview for Excel
+        const dz = document.getElementById('excelDropzone');
+        const fileInput = document.getElementById('excelFile');
+        if (dz && fileInput) {
+            dz.addEventListener('click', () => fileInput.click());
+            ['dragenter', 'dragover'].forEach(e => dz.addEventListener(e, ev => { ev.preventDefault(); dz.classList.add('border-primary'); }));
+            ['dragleave', 'drop'].forEach(e => dz.addEventListener(e, ev => { ev.preventDefault(); dz.classList.remove('border-primary'); }));
+            dz.addEventListener('drop', ev => { if (ev.dataTransfer.files.length) handleExcelFile(ev.dataTransfer.files[0]); });
+            fileInput.addEventListener('change', ev => { if (ev.target.files.length) handleExcelFile(ev.target.files[0]); });
+        }
+
+        let validRows = [];
+        function handleExcelFile(file) {
+            document.getElementById('selectedExcelCard').classList.remove('hidden');
+            document.getElementById('excelFileName').textContent = file.name;
+            document.getElementById('excelFileSize').textContent = (file.size / 1024).toFixed(1) + ' KB';
+            document.getElementById('importProgressSection').classList.remove('hidden');
+            document.getElementById('importResultsSection').classList.add('hidden');
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const wb = XLSX.read(data, { type: 'array' });
+                    const sheet = wb.Sheets[wb.SheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                    const header = rows.shift() || [];
+                    const results = [];
+                    validRows = [];
+                    let success = 0, failed = 0;
+                    rows.forEach((r, idx) => {
+                        const fullName = (r[0] || '').toString().trim();
+                        const email = (r[1] || '').toString().trim();
+                        const code = (r[2] || '').toString().trim() || ('STU' + Math.floor(100000 + Math.random() * 900000));
+                        if (!fullName || !email) {
+                            failed++;
+                            results.push({ name: fullName, email, status: 'Thất bại', reason: 'Thiếu Họ và tên hoặc Email' });
+                        } else if (!email.includes(String.fromCharCode(64))) {
+                            failed++;
+                            results.push({ name: fullName, email, status: 'Thất bại', reason: 'Sai định dạng Email' });
+                        } else {
+                            success++;
+                            validRows.push({ fullName, email, studentCode: code });
+                            results.push({ name: fullName, email, status: 'Thành công', studentCode: code });
+                        }
+                        const pct = Math.round(((idx + 1) / rows.length) * 100);
+                        document.getElementById('importProgressBar').style.width = pct + '%';
+                        document.getElementById('progressPercent').textContent = pct + '%';
+                    });
+                    document.getElementById('importProgressSection').classList.add('hidden');
+                    document.getElementById('importResultsSection').classList.remove('hidden');
+                    document.getElementById('btnSaveImport').disabled = success === 0;
+                    document.getElementById('importSummaryBadge').textContent = success + ' Thành công';
+                    const list = document.getElementById('importResultsList');
+                    list.innerHTML = '';
+                    results.forEach(r => {
+                        const div = document.createElement('div');
+                        div.className = 'flex items-center justify-between p-2 rounded-lg bg-surface-container text-xs';
+                        div.innerHTML = `<div class="min-w-0 flex-1"><div class="font-semibold truncate">${r.name || '(không có tên)'}</div><div class="text-outline truncate">${r.email || '(không có email)'}</div></div><span class="${r.status === 'Thành công' ? 'text-tertiary' : 'text-error'} font-bold ml-2">${r.status}</span>`;
+                        list.appendChild(div);
+                    });
+                } catch (ex) {
+                    showNotification('Lỗi đọc tệp: ' + ex.message, 'error');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+        function resetExcelImport() {
+            document.getElementById('selectedExcelCard').classList.add('hidden');
+            document.getElementById('importResultsSection').classList.add('hidden');
+            document.getElementById('importProgressSection').classList.add('hidden');
+            fileInput.value = '';
+            validRows = [];
+        }
+        async function saveImportResults() {
+            if (!validRows.length) return;
+            const res = await fetch('?handler=BulkImport', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value },
+                body: JSON.stringify(validRows)
+            });
+            const data = await res.json();
+            if (data.success) {
+                showNotification(`Đã lưu ${data.successCount} tài khoản (thất bại: ${data.failCount})`, data.failCount > 0 ? 'warning' : 'success');
+                setTimeout(() => location.reload(), 800);
+            } else {
+                showNotification(data.message || 'Lỗi khi lưu', 'error');
+            }
+        }
+
+        // Apply initial state for the create-user code helper based on the default role.
+        document.addEventListener('DOMContentLoaded', function () {
+            const sel = document.getElementById('createRole');
+            if (sel) toggleStudentCodeField(sel, 'createCodeContainer');
+        });
+    </script>
+}

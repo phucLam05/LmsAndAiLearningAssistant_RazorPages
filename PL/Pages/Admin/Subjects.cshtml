@@ -1,0 +1,249 @@
+﻿@page
+@model PL.Pages.Admin.SubjectsModel
+@using Core.Entities
+@using Microsoft.AspNetCore.Routing
+@{
+    ViewData["Title"] = "Quáº£n lÃ½ mÃ´n há»c";
+    ViewData["PagedResult"] = Model.Paged;
+    ViewData["PagerAction"] = "OnGetAsync";
+    ViewData["BaseQuery"] = new RouteValueDictionary();
+}
+
+<div class="d-flex justify-content-between align-items-center gap-3 mb-4">
+    <div>
+        <span class="app-badge badge-soft-primary"><i class="bi bi-collection me-1"></i> Admin</span>
+        <h1 class="fw-bold mt-2 mb-1" style="letter-spacing:-0.02em;">Quáº£n lÃ½ mÃ´n há»c</h1>
+        <p class="text-on-surface-variant mb-0">Táº¡o, sá»­a, phÃ¢n cÃ´ng giáº£ng viÃªn cho mÃ´n há»c.</p>
+    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createModal">
+        <i class="bi bi-plus-lg me-1"></i> Táº¡o mÃ´n há»c
+    </button>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="app-alert app-alert-danger mb-3"><i class="bi bi-exclamation-triangle-fill"></i><div>@Model.ErrorMessage</div></div>
+}
+@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+{
+    <div class="app-alert app-alert-success mb-3"><i class="bi bi-check-circle-fill"></i><div>@Model.SuccessMessage</div></div>
+}
+
+<form method="get" class="surface-card mb-3 d-flex flex-wrap gap-2 align-items-end">
+    <div class="flex-grow-1" style="min-width: 220px;">
+        <label class="form-label small mb-1">TÃ¬m kiáº¿m</label>
+        <input type="text" name="Search" value="@Model.Search" class="form-control" placeholder="MÃ£ hoáº·c tÃªn mÃ´n há»c..." />
+    </div>
+    <div>
+        <label class="form-label small mb-1">Tráº¡ng thÃ¡i</label>
+        <select name="StatusFilter" class="form-select">
+            <option value="">-- Táº¥t cáº£ --</option>
+            @foreach (var s in Enum.GetValues<SubjectStatus>())
+            {
+                <option value="@s" selected="@(Model.StatusFilter == s)">@s</option>
+            }
+        </select>
+    </div>
+    <div>
+        <label class="form-label small mb-1">Sá»‘/trang</label>
+        <input type="number" name="PageSize" value="@Model.PageSize" class="form-control" min="5" max="200" />
+    </div>
+    <button class="btn btn-primary"><i class="bi bi-funnel me-1"></i>Lá»c</button>
+    <a asp-page="/Admin/Subjects" class="btn btn-light">Äáº·t láº¡i</a>
+</form>
+
+<div class="surface-card p-0 overflow-hidden">
+    <div class="table-responsive">
+        <table class="app-table">
+            <thead>
+                <tr>
+                    <th>MÃ£</th>
+                    <th>TÃªn</th>
+                    <th>Giáº£ng viÃªn</th>
+                    <th>Tráº¡ng thÃ¡i</th>
+                    <th class="text-end">Thao tÃ¡c</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Paged.Items.Any())
+                {
+                    <tr><td colspan="5">
+                        <div class="empty-state"><i class="bi bi-collection"></i><p class="mb-0 mt-2">ChÆ°a cÃ³ mÃ´n há»c nÃ o.</p></div>
+                    </td></tr>
+                }
+                else
+                {
+                    foreach (var s in Model.Paged.Items)
+                    {
+                        <tr>
+                            <td class="text-mono fw-semibold">@s.SubjectCode</td>
+                            <td>
+                                <div>@s.Name</div>
+                                @if (!string.IsNullOrEmpty(s.Description)) { <small class="text-muted">@s.Description</small> }
+                            </td>
+                            <td>@(s.LecturerName ?? "â€”")</td>
+                            <td>
+                                @if (s.Status == SubjectStatus.Active)
+                                {
+                                    <span class="app-badge badge-soft-success">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="app-badge badge-soft-muted">@s.Status</span>
+                                }
+                            </td>
+                            <td class="text-end">
+                                <button type="button" class="btn btn-sm btn-outline-secondary me-1" onclick="openEditModal('@s.Id','@s.SubjectCode','@s.Name', `@s.Description?.Replace("`", "\\`")`, '@s.Status', '@s.LecturerId')"><i class="bi bi-pencil"></i></button>
+                                <button type="button" class="btn btn-sm btn-outline-info me-1" onclick="openAssignModal('@s.Id','@s.SubjectCode','@s.LecturerId')"><i class="bi bi-person-check"></i></button>
+                                <form method="post" asp-page-handler="Delete" asp-route-id="@s.Id" class="d-inline" data-confirm="XÃ³a mÃ´n há»c @s.SubjectCode?">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@await Html.PartialAsync("_Pager", Model)
+
+<!-- Modal: Create -->
+<div class="modal fade" id="createModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: var(--radius-lg);">
+            <form method="post" asp-page-handler="Create">
+                @Html.AntiForgeryToken()
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-plus-lg me-2 text-primary"></i>Táº¡o mÃ´n há»c</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body pt-2">
+                    <div class="row g-2">
+                        <div class="col-4"><label class="form-label">MÃ£ mÃ´n</label><input asp-for="NewSubject.SubjectCode" class="form-control text-mono" placeholder="CS101" required /></div>
+                        <div class="col-8"><label class="form-label">TÃªn mÃ´n</label><input asp-for="NewSubject.Name" class="form-control" placeholder="Nháº­p mÃ´n há»c" required /></div>
+                    </div>
+                    <div class="mt-2">
+                        <label class="form-label">MÃ´ táº£</label>
+                        <textarea asp-for="NewSubject.Description" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="mt-2">
+                        <label class="form-label">Giáº£ng viÃªn (tÃ¹y chá»n)</label>
+                        <select asp-for="NewSubject.LecturerId" class="form-select">
+                            <option value="">-- ChÆ°a phÃ¢n cÃ´ng --</option>
+                            @foreach (var l in Model.Lecturers)
+                            {
+                                <option value="@l.Id">@l.FullName (@l.UserCode)</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Há»§y</button>
+                    <button type="submit" class="btn btn-primary">Táº¡o</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Edit -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: var(--radius-lg);">
+            <form method="post" asp-page-handler="Edit">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="EditSubject.Id" id="editId" />
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-pencil me-2 text-primary"></i>Sá»­a mÃ´n há»c</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body pt-2">
+                    <div class="row g-2">
+                        <div class="col-4"><label class="form-label">MÃ£</label><input id="editCode" class="form-control text-mono" disabled /></div>
+                        <div class="col-8"><label class="form-label">TÃªn</label><input asp-for="EditSubject.Name" class="form-control" id="editName" required /></div>
+                    </div>
+                    <div class="mt-2"><label class="form-label">MÃ´ táº£</label><textarea asp-for="EditSubject.Description" class="form-control" id="editDesc" rows="2"></textarea></div>
+                    <div class="row g-2 mt-1">
+                        <div class="col-6">
+                            <label class="form-label">Giáº£ng viÃªn</label>
+                            <select asp-for="EditSubject.LecturerId" class="form-select" id="editLec">
+                                <option value="">-- ChÆ°a phÃ¢n cÃ´ng --</option>
+                                @foreach (var l in Model.Lecturers)
+                                {
+                                    <option value="@l.Id">@l.FullName</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Tráº¡ng thÃ¡i</label>
+                            <select asp-for="EditSubject.Status" class="form-select" id="editStatus">
+                                @foreach (var s in Enum.GetValues<SubjectStatus>())
+                                {
+                                    <option value="@s">@s</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Há»§y</button>
+                    <button type="submit" class="btn btn-primary">LÆ°u</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Assign Lecturer -->
+<div class="modal fade" id="assignModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: var(--radius-lg);">
+            <form method="post" asp-page-handler="Assign">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="AssignData.SubjectId" id="assignSubjectId" />
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-person-check me-2 text-primary"></i>PhÃ¢n cÃ´ng giáº£ng viÃªn</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body pt-2">
+                    <p>MÃ´n há»c: <strong id="assignSubjectCode" class="text-mono"></strong></p>
+                    <label class="form-label">Chá»n giáº£ng viÃªn</label>
+                    <select asp-for="AssignData.LecturerId" class="form-select" id="assignLec">
+                        <option value="">-- Bá» phÃ¢n cÃ´ng --</option>
+                        @foreach (var l in Model.Lecturers)
+                        {
+                            <option value="@l.Id">@l.FullName (@l.UserCode)</option>
+                        }
+                    </select>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Há»§y</button>
+                    <button type="submit" class="btn btn-primary">PhÃ¢n cÃ´ng</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openEditModal(id, code, name, desc, status, lecturerId) {
+            document.getElementById('editId').value = id;
+            document.getElementById('editCode').value = code;
+            document.getElementById('editName').value = name;
+            document.getElementById('editDesc').value = desc || '';
+            document.getElementById('editStatus').value = status;
+            document.getElementById('editLec').value = lecturerId || '';
+            new bootstrap.Modal(document.getElementById('editModal')).show();
+        }
+        function openAssignModal(subjectId, subjectCode, currentLecId) {
+            document.getElementById('assignSubjectId').value = subjectId;
+            document.getElementById('assignSubjectCode').textContent = subjectCode;
+            document.getElementById('assignLec').value = currentLecId || '';
+            new bootstrap.Modal(document.getElementById('assignModal')).show();
+        }
+    </script>
+}

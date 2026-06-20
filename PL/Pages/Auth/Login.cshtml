@@ -1,26 +1,65 @@
-@page
+﻿@page
 @model PL.Pages.Auth.LoginModel
 @{
-    ViewData["Title"] = "Login";
+    ViewData["Title"] = "Đăng nhập";
 }
 
-<h1>Login</h1>
+<div class="bg-surface-container-high/60 backdrop-blur-md border border-outline-variant/40 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
+    <div class="mb-6">
+        <h3 class="text-headline-md font-bold text-on-surface" style="font-size: 24px;">Đăng nhập</h3>
+        <p class="text-body-md text-outline mt-1">
+            Nhập thông tin tài khoản của bạn để tiếp tục.
+        </p>
+    </div>
 
-@if (!string.IsNullOrEmpty(Model.ErrorMessage))
-{
-    <div class="alert alert-danger">@Model.ErrorMessage</div>
+    <form method="post" asp-page-handler="Login" asp-route-returnUrl="@Model.ReturnUrl" class="space-y-4">
+        <input type="hidden" asp-for="ReturnUrl" />
+
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div asp-validation-summary="ModelOnly" class="bg-error-container/20 border border-error-container/40 text-error p-3 rounded-xl text-body-md flex items-start gap-2">
+                <span class="material-symbols-outlined text-[20px]">error</span>
+                <span>Sai thông tin đăng nhập. Vui lòng kiểm tra lại.</span>
+            </div>
+        }
+
+        <div class="space-y-1">
+            <label asp-for="Input.Email" class="block text-label-md font-bold text-on-surface-variant">
+                Địa chỉ Email
+            </label>
+            <div class="relative">
+                <span class="material-symbols-outlined absolute left-3 top-3.5 text-outline text-[20px]">mail</span>
+                <input asp-for="Input.Email"
+                       autocomplete="email"
+                       class="bg-surface-container-low border border-outline-variant/60 rounded-xl pl-10 pr-4 py-3 text-on-surface placeholder:text-outline-variant/60 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full transition-all text-body-md"
+                       placeholder="name@example.com" />
+            </div>
+            <span asp-validation-for="Input.Email" class="text-error text-label-md block mt-1"></span>
+        </div>
+
+        <div class="space-y-1">
+            <label asp-for="Input.Password" class="block text-label-md font-bold text-on-surface-variant">
+                Mật khẩu
+            </label>
+            <div class="relative">
+                <span class="material-symbols-outlined absolute left-3 top-3.5 text-outline text-[20px]">lock</span>
+                <input asp-for="Input.Password"
+                       type="password"
+                       autocomplete="current-password"
+                       class="bg-surface-container-low border border-outline-variant/60 rounded-xl pl-10 pr-4 py-3 text-on-surface placeholder:text-outline-variant/60 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full transition-all text-body-md"
+                       placeholder="••••••••" />
+            </div>
+            <span asp-validation-for="Input.Password" class="text-error text-label-md block mt-1"></span>
+        </div>
+
+        <button type="submit"
+                class="w-full bg-primary hover:bg-primary/95 text-on-primary font-bold py-3 px-4 rounded-xl shadow-lg transition-all duration-200 flex items-center justify-center gap-2 hover:scale-[1.01] mt-6">
+            <span>Đăng nhập</span>
+            <span class="material-symbols-outlined text-[18px]">login</span>
+        </button>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
 }
-
-<form method="post">
-    <div class="form-group mb-3">
-        <label asp-for="Input.Email"></label>
-        <input asp-for="Input.Email" class="form-control" />
-        <span asp-validation-for="Input.Email" class="text-danger"></span>
-    </div>
-    <div class="form-group mb-3">
-        <label asp-for="Input.Password"></label>
-        <input asp-for="Input.Password" type="password" class="form-control" />
-        <span asp-validation-for="Input.Password" class="text-danger"></span>
-    </div>
-    <button type="submit" class="btn btn-primary">Login</button>
-</form>

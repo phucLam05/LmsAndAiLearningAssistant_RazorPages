@@ -1,0 +1,100 @@
+﻿@page
+@model PL.Pages.Document.DetailsModel
+@using Core.Entities
+@{
+    ViewData["Title"] = Model.Document.FileName;
+    var isAdmin = User.IsInRole("Admin");
+    var backUrl = isAdmin ? "/Admin/Documents" : $"/Subject/Details?id={Model.Document.SubjectId}";
+    var statusText = Model.Document.Status switch
+    {
+        DocumentStatus.Success => "Thành công",
+        DocumentStatus.Failed => "Thất bại",
+        DocumentStatus.Processing => "Đang xử lý",
+        DocumentStatus.Pending => "Đang chờ",
+        _ => Model.Document.Status.ToString()
+    };
+}
+
+@functions {
+    public static string FormatFileSize(long bytes)
+    {
+        if (bytes <= 0) return "0 Bytes";
+        string[] suffixes = { "Bytes", "KB", "MB", "GB" };
+        int counter = 0;
+        double number = bytes;
+        while (Math.Round(number / 1024) >= 1)
+        {
+            number = number / 1024;
+            counter++;
+            if (counter >= suffixes.Length - 1) break;
+        }
+        return $"{number:F1} {suffixes[counter]}";
+    }
+}
+
+<div class="max-w-5xl mx-auto space-y-6 select-none">
+    <div>
+        <a href="@backUrl" class="inline-flex items-center gap-1 text-on-surface-variant hover:text-on-surface text-xs font-semibold">
+            <span class="material-symbols-outlined text-[16px]">arrow_back</span> Quay lại
+        </a>
+    </div>
+
+    <div class="bg-surface-container-low border border-outline-variant/30 rounded-2xl p-6 shadow-sm">
+        <div class="flex items-start gap-4">
+            <div class="w-14 h-14 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+                <span class="material-symbols-outlined text-[28px] filled">description</span>
+            </div>
+            <div class="flex-1 min-w-0">
+                <h1 class="font-headline-md text-headline-md font-bold text-on-surface truncate">@Model.Document.FileName</h1>
+                <p class="text-xs text-on-surface-variant mt-1">
+                    <span class="font-mono text-primary">@Model.Document.SubjectCode</span> · @Model.Document.SubjectName
+                </p>
+            </div>
+            <a asp-page="/Document/ViewOriginal" asp-route-id="@Model.Document.Id" target="_blank" class="bg-primary text-on-primary px-4 py-2 rounded-lg font-label-md text-xs font-bold flex items-center gap-1.5 hover:scale-[1.02] transition-all">
+                <span class="material-symbols-outlined text-[16px]">download</span> Tải xuống
+            </a>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6">
+            <div class="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-3">
+                <p class="text-[10px] text-outline uppercase tracking-wider">Trạng thái</p>
+                <p class="text-sm font-bold text-on-surface mt-0.5">@statusText</p>
+            </div>
+            <div class="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-3">
+                <p class="text-[10px] text-outline uppercase tracking-wider">Dung lượng</p>
+                <p class="text-sm font-bold text-on-surface mt-0.5">@FormatFileSize(Model.Document.FileSize)</p>
+            </div>
+            <div class="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-3">
+                <p class="text-[10px] text-outline uppercase tracking-wider">Chunks</p>
+                <p class="text-sm font-bold text-on-surface mt-0.5">@Model.Chunks.Count</p>
+            </div>
+            <div class="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-3">
+                <p class="text-[10px] text-outline uppercase tracking-wider">Tổng tokens</p>
+                <p class="text-sm font-bold text-on-surface mt-0.5">@Model.Chunks.Sum(c => c.TokenCount)</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-surface-container-low border border-outline-variant/30 rounded-2xl p-5 shadow-sm">
+        <h3 class="font-headline-sm text-base font-bold text-on-surface mb-4">Danh sách chunks (@Model.Chunks.Count)</h3>
+        @if (!Model.Chunks.Any())
+        {
+            <p class="text-xs text-on-surface-variant text-center py-6">Tài liệu chưa được phân tích hoặc không có chunks.</p>
+        }
+        else
+        {
+            <div class="space-y-2 max-h-[600px] overflow-y-auto pr-1">
+                @foreach (var chunk in Model.Chunks)
+                {
+                    <div class="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-3">
+                        <div class="flex justify-between text-[10px] text-outline mb-1">
+                            <span class="font-mono">#@chunk.ChunkIndex @(chunk.PageNumber.HasValue ? $"· Trang {chunk.PageNumber}" : "")</span>
+                            <span>~@chunk.TokenCount tokens</span>
+                        </div>
+                        <p class="text-xs text-on-surface leading-relaxed whitespace-pre-wrap line-clamp-6">@chunk.Content</p>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>

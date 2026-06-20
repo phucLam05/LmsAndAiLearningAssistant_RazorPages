@@ -8,5 +8,6 @@ namespace BLL.Interfaces
     public interface IEmailService
     {
         Task SendFirstTimeLoginEmailAsync(string email, string fullName, string userCode, string temporaryPassword);
+        Task SendPasswordResetNotificationAsync(string email, string fullName, string newPassword);
     }
 }

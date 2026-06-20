@@ -86,5 +86,42 @@ LMS AI Team
                 Console.WriteLine($"[EMAIL SEND ERROR] Fallback details for {email}: UserCode={userCode}, TempPassword={temporaryPassword}");
             }
         }
+
+        public async Task SendPasswordResetNotificationAsync(string email, string fullName, string newPassword)
+        {
+            var subject = "LMS AI - Mật khẩu của bạn đã được đặt lại";
+            var body = $@"Xin chào {fullName},
+
+Mật khẩu tài khoản LMS AI của bạn vừa được quản trị viên đặt lại.
+
+Mật khẩu mới: {newPassword}
+
+Vui lòng đăng nhập và đổi sang mật khẩu cá nhân ngay lập tức.
+
+Trân trọng,
+Đội ngũ LMS AI";
+
+            if (string.IsNullOrWhiteSpace(_host))
+            {
+                _logger.LogWarning("SMTP not configured. Password-reset for {Email}: new password = {Password}", email, newPassword);
+                Console.WriteLine($"[EMAIL FALLBACK - Password reset] {email} -> {newPassword}");
+                return;
+            }
+
+            try
+            {
+                using var mail = new MailMessage(_fromAddress, email, subject, body);
+                using var smtp = new SmtpClient(_host, _port);
+                if (!string.IsNullOrWhiteSpace(_username))
+                    smtp.Credentials = new NetworkCredential(_username, _password);
+                smtp.EnableSsl = _enableSsl;
+                await smtp.SendMailAsync(mail);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send password-reset notification to {Email}. Fallback: {Password}", email, newPassword);
+                Console.WriteLine($"[EMAIL SEND ERROR - Password reset] {email} -> {newPassword}");
+            }
+        }
     }
 }

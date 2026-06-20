@@ -19,5 +19,11 @@ namespace Core.DTOs.Admin
         [Required]
         [StringLength(50)]
         public string UserCode { get; set; } = string.Empty;
+
+        /// <summary>
+        /// When true, the user is created in Inactive status and must set a new password
+        /// at first login (default behavior). Set false to create already-active accounts.
+        /// </summary>
+        public bool MustChangePassword { get; set; } = true;
     }
 }

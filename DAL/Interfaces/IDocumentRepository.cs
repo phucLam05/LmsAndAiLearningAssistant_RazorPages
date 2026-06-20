@@ -62,5 +62,9 @@ namespace DAL.Interfaces
         /// Retrieves all documents across all subjects, including related Subject and Uploader data.
         /// </summary>
         Task<IReadOnlyList<Document>> GetAllWithDetailsAsync();
+
+        Task<IReadOnlyList<Document>> QueryAsync(string? search, Core.Entities.DocumentStatus? status, Guid? subjectId, int pageIndex, int pageSize);
+
+        Task<int> CountAsync(string? search, Core.Entities.DocumentStatus? status, Guid? subjectId);
     }
 }

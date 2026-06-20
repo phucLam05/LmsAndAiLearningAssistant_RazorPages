@@ -30,6 +30,8 @@ namespace DAL
             services.AddScoped<ISubjectRepository, SubjectRepository>();
             services.AddScoped<IDocumentChunkRepository, DocumentChunkRepository>();
             services.AddScoped<ISubjectRepository, SubjectRepository>();
+            services.AddScoped<IChatSessionRepository, ChatSessionRepository>();
+            services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
 
             services.AddHttpClient<ISupabaseStorageProvider, SupabaseStorageProvider>();
             services.AddHttpClient<IGeminiEmbeddingProvider, GeminiEmbeddingProvider>();

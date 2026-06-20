@@ -1,10 +1,138 @@
 ﻿@page
-@model IndexModel
+@model PL.Pages.IndexModel
 @{
-    ViewData["Title"] = "Home page";
+    ViewData["Title"] = "Trang chủ";
+    var isAuthenticated = User.Identity?.IsAuthenticated == true;
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="max-w-5xl mx-auto space-y-8 select-none animate-fade-in">
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-6">
+        <div class="md:col-span-3 bg-surface-container-low border border-outline-variant/30 rounded-2xl p-6 md:p-8 flex flex-col justify-center shadow-sm">
+            <span class="bg-primary/10 text-primary border border-primary/20 px-2.5 py-0.5 rounded-lg text-[10px] font-mono font-bold tracking-tight self-start uppercase">
+                Trợ lý học tập RAG
+            </span>
+            <h1 class="font-headline-lg text-headline-lg md:font-display-lg md:text-display-lg font-bold text-on-surface mt-4 tracking-tight leading-tight">Trợ lý học tập LMS AI <span class="text-xs text-tertiary font-mono ml-2">Razor Pages</span></h1>
+            <p class="text-xs text-on-surface-variant leading-relaxed mt-3 max-w-md">
+                Hệ thống quản lý tài liệu học tập thông minh. Tải lên giáo trình, bài giảng slides và tương tác hỏi đáp trực tiếp với trợ lý AI được cá nhân hóa dựa trên học liệu thực tế của bạn.
+            </p>
+
+            <div class="flex gap-3 flex-wrap mt-6">
+                @if (isAuthenticated)
+                {
+                    var role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "Student";
+                    if (role == "Admin")
+                    {
+                        <a class="inline-flex items-center gap-2 bg-primary text-on-primary hover:bg-primary-fixed hover:text-on-primary-fixed px-4 py-2.5 rounded-xl font-label-md text-xs font-bold transition-all shadow-md" asp-page="/Admin/Index">
+                            <span class="material-symbols-outlined text-[16px]">dashboard</span> Trang quản trị viên
+                        </a>
+                    }
+                    else if (role == "Lecturer")
+                    {
+                        <a class="inline-flex items-center gap-2 bg-primary text-on-primary hover:bg-primary-fixed hover:text-on-primary-fixed px-4 py-2.5 rounded-xl font-label-md text-xs font-bold transition-all shadow-md" asp-page="/Lecturer/Portal">
+                            <span class="material-symbols-outlined text-[16px]">database</span> Không gian Giảng viên
+                        </a>
+                    }
+                    else
+                    {
+                        <a class="inline-flex items-center gap-2 bg-primary text-on-primary hover:bg-primary-fixed hover:text-on-primary-fixed px-4 py-2.5 rounded-xl font-label-md text-xs font-bold transition-all shadow-md" asp-page="/Subject/Browse">
+                            <span class="material-symbols-outlined text-[16px]">search</span> Khám phá môn học
+                        </a>
+                    }
+                    <a class="inline-flex items-center gap-2 border border-outline-variant/50 hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface px-4 py-2.5 rounded-xl font-label-md text-xs font-bold transition-all" asp-page="/Subject/Index">
+                        <span class="material-symbols-outlined text-[16px]">folder</span> Danh sách môn học
+                    </a>
+                }
+                else
+                {
+                    <a class="inline-flex items-center gap-2 bg-primary text-on-primary hover:bg-primary-fixed hover:text-on-primary-fixed px-4 py-2.5 rounded-xl font-label-md text-xs font-bold transition-all shadow-md hover:scale-[1.01]" asp-page="/Auth/Login">
+                        <span>Đăng nhập ngay</span>
+                        <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+                    </a>
+                    <a class="inline-flex items-center gap-2 border border-outline-variant/50 hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface px-4 py-2.5 rounded-xl font-label-md text-xs font-bold transition-all" asp-page="/Auth/Register">
+                        Tạo tài khoản mới
+                    </a>
+                }
+            </div>
+        </div>
+
+        <div class="md:col-span-2 bg-surface-container-low border border-outline-variant/30 rounded-2xl p-4 flex flex-col justify-between shadow-sm min-h-[320px]">
+            <div class="flex items-center gap-2 pb-2.5 border-b border-outline-variant/20 select-none">
+                <span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span>
+                <span class="font-bold text-xs text-on-surface">Hỏi đáp AI Tài liệu</span>
+                <span class="bg-surface-container-highest border border-outline-variant/40 text-[9px] text-outline font-bold px-1.5 py-0.5 rounded ml-auto">Preview</span>
+            </div>
+
+            <div class="space-y-3 flex-1 flex flex-col justify-center select-none py-4">
+                <div class="self-end max-w-[85%] bg-surface-container-highest border border-outline-variant/30 text-[11px] text-on-surface px-3 py-2 rounded-xl rounded-tr-none leading-relaxed">
+                    Tóm tắt giùm tôi nội dung cốt lõi của bài giảng môn PRN222 vừa tải lên?
+                </div>
+                <div class="self-start max-w-[85%] bg-surface-container border border-outline-variant/20 text-[11px] text-on-surface-variant px-3 py-2 rounded-xl rounded-tl-none leading-relaxed">
+                    Tôi có thể trả lời các câu hỏi và tóm tắt chi tiết sau khi các tập tin học liệu được tải lên hệ thống và nhúng thành công vào cơ sở dữ liệu tri thức.
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 p-1.5 bg-surface-container-lowest border border-outline-variant/50 rounded-xl mt-auto select-none">
+                <span class="text-[10px] text-outline px-2 flex-1 truncate">Đặt câu hỏi từ môn học của bạn...</span>
+                <button type="button" class="bg-primary/20 text-primary/45 rounded-lg px-3 py-1.5 text-[10px] font-bold cursor-not-allowed select-none" disabled>Gửi</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="md:col-span-1 bg-surface-container-low border border-outline-variant/30 rounded-2xl p-5 flex flex-col justify-between shadow-sm">
+            <div>
+                <h3 class="font-headline-sm text-sm font-bold text-on-surface mb-1">Nguồn tài liệu</h3>
+                <p class="text-[11px] text-outline mb-4 leading-normal">Bắt đầu bằng việc cung cấp các tài liệu định dạng văn bản học thuật.</p>
+                <a class="flex items-center gap-3 p-3.5 border border-dashed border-outline-variant/60 hover:border-primary rounded-xl text-xs hover:bg-surface-container transition-all group" asp-page="/Subject/Index">
+                    <span class="w-8 h-8 rounded-full bg-primary/10 group-hover:bg-primary/20 text-primary flex items-center justify-center font-bold text-base select-none transition-all">+</span>
+                    <span>
+                        <strong class="text-on-surface block font-semibold text-xs">Quản lý môn học</strong>
+                        <small class="text-outline text-[10px] block mt-0.5">Tải lên trong chi tiết môn</small>
+                    </span>
+                </a>
+            </div>
+
+            <div class="flex flex-wrap gap-1.5 mt-5">
+                <span class="bg-surface-container-highest border border-outline-variant text-[9px] font-mono text-outline font-bold px-2 py-0.5 rounded select-none">PDF</span>
+                <span class="bg-surface-container-highest border border-outline-variant text-[9px] font-mono text-outline font-bold px-2 py-0.5 rounded select-none">DOCX</span>
+                <span class="bg-surface-container-highest border border-outline-variant text-[9px] font-mono text-outline font-bold px-2 py-0.5 rounded select-none">PPTX</span>
+                <span class="bg-surface-container-highest border border-outline-variant text-[9px] font-mono text-outline font-bold px-2 py-0.5 rounded select-none">TXT</span>
+            </div>
+        </div>
+
+        <div class="md:col-span-2 bg-surface-container-low border border-outline-variant/30 rounded-2xl p-5 shadow-sm space-y-4">
+            <h3 class="font-headline-sm text-sm font-bold text-on-surface">Quy trình xử lý RAG Pipeline</h3>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="p-3 bg-surface-container-lowest border border-outline-variant/40 rounded-xl space-y-1">
+                    <span class="font-bold text-xs text-on-surface flex items-center gap-1.5">
+                        <span class="w-4 h-4 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-[10px]">1</span>
+                        Tải tài liệu lên
+                    </span>
+                    <span class="text-[10px] text-outline leading-relaxed block">Các file giáo trình được lưu trữ bảo mật tại Supabase Storage bucket.</span>
+                </div>
+                <div class="p-3 bg-surface-container-lowest border border-outline-variant/40 rounded-xl space-y-1">
+                    <span class="font-bold text-xs text-on-surface flex items-center gap-1.5">
+                        <span class="w-4 h-4 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-[10px]">2</span>
+                        Trích xuất &amp; Chia nhỏ
+                    </span>
+                    <span class="text-[10px] text-outline leading-relaxed block">Hệ thống chuyển đổi file sang văn bản thô và chia nhỏ thành các phân đoạn (Chunks).</span>
+                </div>
+                <div class="p-3 bg-surface-container-lowest border border-outline-variant/40 rounded-xl space-y-1">
+                    <span class="font-bold text-xs text-on-surface flex items-center gap-1.5">
+                        <span class="w-4 h-4 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-[10px]">3</span>
+                        Nhúng Vector nhãn
+                    </span>
+                    <span class="text-[10px] text-outline leading-relaxed block">Số hóa các phân đoạn thành các vector 1536 chiều và đồng bộ hóa qua cơ sở dữ liệu pgvector.</span>
+                </div>
+                <div class="p-3 bg-surface-container-lowest border border-outline-variant/40 rounded-xl space-y-1">
+                    <span class="font-bold text-xs text-on-surface flex items-center gap-1.5">
+                        <span class="w-4 h-4 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-[10px]">4</span>
+                        Hỏi đáp &amp; Dẫn nguồn
+                    </span>
+                    <span class="text-[10px] text-outline leading-relaxed block">Sinh viên gửi câu hỏi, AI truy vấn ngữ nghĩa các chunks liên quan và phản hồi trích dẫn chuẩn xác.</span>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>

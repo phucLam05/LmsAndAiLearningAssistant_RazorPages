@@ -46,20 +46,44 @@ namespace BLL.Services
 
         public async Task<Result<User>> CreateUserAsync(UserCreateDto dto)
         {
+            // ── Validation: UserCode required, format tied to role
+            if (string.IsNullOrWhiteSpace(dto.UserCode))
+                return Result<User>.Failure("Mã người dùng là bắt buộc.");
+
+            var normalizedCode = dto.UserCode.Trim().ToUpperInvariant();
+
+            // Lecturer codes must start with LEC and be unique
+            if (dto.Role == UserRole.Lecturer)
+            {
+                if (!normalizedCode.StartsWith("LEC", StringComparison.Ordinal))
+                    return Result<User>.Failure("Mã giảng viên phải bắt đầu bằng 'LEC' (VD: LEC001).");
+                if (normalizedCode.Length < 4 || normalizedCode.Length > 50)
+                    return Result<User>.Failure("Mã giảng viên không hợp lệ (độ dài 4-50).");
+            }
+            else if (dto.Role == UserRole.Student)
+            {
+                if (!normalizedCode.StartsWith("STU", StringComparison.Ordinal))
+                    return Result<User>.Failure("Mã sinh viên phải bắt đầu bằng 'STU' (VD: STU123456).");
+            }
+            else if (dto.Role == UserRole.Admin)
+            {
+                if (!normalizedCode.StartsWith("ADM", StringComparison.Ordinal))
+                    return Result<User>.Failure("Mã quản trị phải bắt đầu bằng 'ADM' (VD: ADM001).");
+            }
+
             var normalizedEmail = dto.Email.Trim().ToLowerInvariant();
             var emailHash = HashEmail(normalizedEmail);
 
             var existingUser = await _userRepository.GetUserByEmailHashAsync(emailHash);
             if (existingUser != null)
             {
-                return Result<User>.Failure("Email is already registered.");
+                return Result<User>.Failure("Email đã được đăng ký.");
             }
 
-            var normalizedCode = dto.UserCode.Trim().ToUpperInvariant();
             var codeExists = await _userRepository.UserCodeExistsAsync(normalizedCode);
             if (codeExists)
             {
-                return Result<User>.Failure("User Code is already taken.");
+                return Result<User>.Failure($"Mã '{normalizedCode}' đã tồn tại.");
             }
 
             var tempPassword = GenerateRandomPassword();
@@ -74,17 +98,74 @@ namespace BLL.Services
                 EmailEncrypt = EncryptEmail(normalizedEmail),
                 PasswordHash = passwordHash,
                 Role = dto.Role,
-                Status = UserStatus.Inactive, // Inactive (0) triggers first-time login flow
+                Status = UserStatus.Inactive, // Inactive triggers first-time login flow
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
 
             await _userRepository.AddUserAsync(newUser);
 
-            // Send notification email in background/synchronously
-            await _emailService.SendFirstTimeLoginEmailAsync(normalizedEmail, newUser.FullName, newUser.UserCode, tempPassword);
+            // Send notification email in background (with fallback to console if SMTP not configured)
+            try
+            {
+                await _emailService.SendFirstTimeLoginEmailAsync(normalizedEmail, newUser.FullName, newUser.UserCode, tempPassword);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Email send failed for {Email}, but user {UserCode} was created.", normalizedEmail, normalizedCode);
+            }
 
             return Result<User>.Success(newUser);
+        }
+
+        public async Task<Result> ResetPasswordAsync(Guid id, string newPassword)
+        {
+            var user = await _userRepository.GetByIdAsync(id);
+            if (user == null) return Result.Failure("Không tìm thấy người dùng.");
+
+            if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)
+            {
+                return Result.Failure("Mật khẩu phải có ít nhất 6 ký tự.");
+            }
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            user.Status = UserStatus.Active;
+            user.UpdatedAt = DateTime.UtcNow;
+            await _userRepository.UpdateAsync(user);
+
+            // Try to notify the user (best-effort; fall back to console if SMTP not configured).
+            try
+            {
+                var email = !string.IsNullOrEmpty(user.EmailEncrypt)
+                    ? DecryptEmailInternal(user.EmailEncrypt)
+                    : null;
+                if (!string.IsNullOrEmpty(email))
+                {
+                    await _emailService.SendPasswordResetNotificationAsync(email, user.FullName, newPassword);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to send password-reset notification for user {UserCode}.", user.UserCode);
+            }
+
+            return Result.Success();
+        }
+
+        private string DecryptEmailInternal(string encryptedEmailBase64)
+        {
+            using var aes = System.Security.Cryptography.Aes.Create();
+            aes.Key = Encoding.UTF8.GetBytes(_encryptionKey);
+            var allBytes = Convert.FromBase64String(encryptedEmailBase64);
+            var iv = new byte[aes.BlockSize / 8];
+            Buffer.BlockCopy(allBytes, 0, iv, 0, iv.Length);
+            aes.IV = iv;
+            var cipherBytes = new byte[allBytes.Length - iv.Length];
+            Buffer.BlockCopy(allBytes, iv.Length, cipherBytes, 0, cipherBytes.Length);
+
+            var decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
+            var plainBytes = decryptor.TransformFinalBlock(cipherBytes, 0, cipherBytes.Length);
+            return Encoding.UTF8.GetString(plainBytes);
         }
 
         public async Task<Result> UpdateUserAsync(UserEditDto dto)
