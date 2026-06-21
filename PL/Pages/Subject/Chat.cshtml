@@ -1,4 +1,4 @@
-﻿@page
+@page
 @model PL.Pages.Subject.ChatModel
 @using Core.Entities
 @inject IDocumentService DocumentService
@@ -255,10 +255,10 @@
                         </button>
                     </div>
                 </div>
-                <div id="viewerBody" class="h-[260px] overflow-auto bg-white text-black">
+                <div id="viewerBody" class="h-[45vh] overflow-auto bg-white text-black">
                     <div id="viewerLoading" class="hidden h-full flex items-center justify-center text-xs text-on-surface-variant">Đang tải tài liệu...</div>
                     <canvas id="pdfCanvas" class="hidden mx-auto"></canvas>
-                    <iframe id="iframeViewer" class="hidden w-full h-full border-0" sandbox=""></iframe>
+                    <iframe id="iframeViewer" class="hidden w-full h-full border-0" sandbox="allow-scripts allow-same-origin allow-popups"></iframe>
                     <div id="viewerFallback" class="hidden h-full flex flex-col items-center justify-center text-center text-on-surface-variant text-xs p-4 gap-2">
                         <span class="material-symbols-outlined text-[36px] text-outline">visibility_off</span>
                         Không thể hiển thị trực tiếp. Vui lòng bấm <strong>Mở</strong> để xem trong tab mới.
@@ -420,6 +420,8 @@
             resetViewer();
             viewerLoading.classList.remove('hidden');
             const fileUrl = `/Document/ViewOriginal?id=${source.documentId}`;
+            const unsupportedExts = ['docx', 'doc', 'pptx', 'ppt', 'xlsx', 'xls', 'zip', 'rar'];
+            
             if (ext === 'pdf') {
                 try {
                     await renderPdfPage(fileUrl, 1);
@@ -430,6 +432,9 @@
                     iframeViewer.src = fileUrl;
                     iframeViewer.classList.remove('hidden');
                 }
+            } else if (unsupportedExts.includes(ext)) {
+                viewerLoading.classList.add('hidden');
+                viewerFallback.classList.remove('hidden');
             } else {
                 iframeViewer.src = fileUrl;
                 viewerLoading.classList.add('hidden');
@@ -522,9 +527,10 @@
 
         // Initial messages
         @{
+            var camelCaseOptions = new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase };
             var lastAssistantMsg = Model.InitialMessages.LastOrDefault(m => m.Role == "assistant");
             var lastAssistantSourcesJson = lastAssistantMsg?.Sources != null
-                ? System.Text.Json.JsonSerializer.Serialize(lastAssistantMsg.Sources)
+                ? System.Text.Json.JsonSerializer.Serialize(lastAssistantMsg.Sources, camelCaseOptions)
                 : "[]";
         }
         @if (Model.InitialMessages.Any())
@@ -532,7 +538,7 @@
             <text>chatMessages.innerHTML = '';
             @foreach (var m in Model.InitialMessages)
             {
-                <text>appendMessage(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(m.Content)), '@m.Role', @(m.Sources != null ? Html.Raw(System.Text.Json.JsonSerializer.Serialize(m.Sources)) : "[]"));</text>
+                <text>appendMessage(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(m.Content)), '@(m.Role == "assistant" ? "ai" : "user")', @(m.Sources != null ? Html.Raw(System.Text.Json.JsonSerializer.Serialize(m.Sources, camelCaseOptions)) : "[]"));</text>
             }
             renderSources(@Html.Raw(lastAssistantSourcesJson));
             scrollToBottom();
@@ -575,7 +581,11 @@
                     appendMessage(data.reply, 'ai', data.sources);
                     renderSources(data.sources);
                     if (data.sessionId && !document.querySelector(`.session-item[data-session-id="${data.sessionId}"]`)) {
-                        setTimeout(() => window.location.reload(), 1200);
+                        history.pushState(null, '', '?subjectId=' + subjectId + '&sessionId=' + data.sessionId);
+                        const noSession = document.querySelector('#sessionsList > div.text-center');
+                        if (noSession) noSession.remove();
+                        const html = `<div class="session-item group flex items-center gap-2 rounded-lg p-2 border border-primary/40 bg-primary/10 hover:border-primary/50 hover:bg-surface transition-colors cursor-pointer" data-session-id="${data.sessionId}" onclick="loadSession('${data.sessionId}')"><span class="material-symbols-outlined text-[16px] text-primary flex-shrink-0">chat</span><div class="min-w-0 flex-1"><p class="text-[11px] font-semibold text-on-surface truncate" title="Cuộc trò chuyện mới">Cuộc trò chuyện mới</p><p class="text-[9px] text-outline">Vừa xong</p></div><button type="button" onclick="event.stopPropagation(); deleteSession('${data.sessionId}')" class="opacity-0 group-hover:opacity-100 p-1 text-outline hover:text-error transition-all" title="Xóa"><span class="material-symbols-outlined text-[14px]">delete</span></button></div>`;
+                        document.getElementById('sessionsList').insertAdjacentHTML('afterbegin', html);
                     }
                 } else {
                     appendMessage(`Lỗi hệ thống: ${data.message}`, 'ai');
@@ -602,7 +612,7 @@
                     if (sourceExists) {
                         return `<button type="button" class="citation-badge inline-flex items-center justify-center w-5 h-5 ml-1 mr-0.5 text-[9px] font-bold rounded-full bg-primary/15 text-primary hover:bg-primary/25 border border-primary/20 cursor-pointer select-none transition-all align-middle" style="margin-top: -3px;" data-index="${idx}">${idx}</button>`;
                     }
-                    return match;
+                    return ''; // Remove invalid refs that don't exist in sources
                 });
                 messageWrapper.innerHTML = `
                     <div class="flex items-center gap-2 px-1 select-none">

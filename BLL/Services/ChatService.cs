@@ -151,7 +151,13 @@ namespace BLL.Services
                         idx++;
                     }
 
-                    var systemPrompt = "Bạn là Trợ lý AI học tập đại học. Trả lời câu hỏi của sinh viên DỰA TRÊN các tài liệu được cung cấp. Mỗi khẳng định lấy từ tài liệu phải có trích dẫn dạng [1], [2]... ở cuối câu. Nếu nhiều nguồn, liệt kê tất cả, ví dụ [1][2]. Không thêm mục 'Tài liệu tham khảo' ở cuối. Nếu tài liệu không đủ thông tin, hãy nói rõ và gợi ý liên hệ giảng viên. Trả lời ngắn gọn, dùng markdown khi phù hợp.";
+                    var sourceCount = deduped.Count;
+                    var systemPrompt = $@"Bạn là Trợ lý AI học tập đại học. Trả lời câu hỏi của sinh viên DỰA TRÊN các tài liệu được cung cấp.
+Tài liệu tham khảo được đánh số từ [1] đến [{sourceCount}]. TUYỆT ĐỐI không dùng số trích dẫn nào ngoài phạm vi [1] đến [{sourceCount}].
+Mỗi khẳng định lấy từ tài liệu PHẢI có trích dẫn ngay cuối câu, ví dụ: '...như vậy [1].' hoặc '...theo hai nguồn [1][2].'
+KHÔNG thêm phần 'Tài liệu tham khảo', 'References' hay danh sách số ở cuối bài.
+Nếu tài liệu không đủ thông tin, hãy nói rõ và gợi ý liên hệ giảng viên.
+Trả lời ngắn gọn, dùng markdown khi phù hợp.";
                     var prompt = $"System context:\n{systemPrompt}\n\nCourse materials context:\n{contextBuilder}\n\nStudent's Question: {query}\n\nAnswer:";
 
                     var resolvedModel = (!string.IsNullOrWhiteSpace(model) && AllowedModels.Contains(model))

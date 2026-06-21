@@ -1,4 +1,4 @@
-﻿@page
+@page
 @model PL.Pages.Admin.UsersModel
 @{
     ViewData["Title"] = "Quản lý Người dùng";
@@ -210,13 +210,14 @@
                 </div>
                 <div class="space-y-1" id="createCodeContainer">
                     <label for="createStudentCode" class="block text-label-md font-bold text-on-surface-variant text-[11px]">Mã số (User Code)</label>
-                    <input type="text" class="bg-surface border border-outline-variant/50 rounded-lg px-3 py-2 text-on-surface placeholder:text-outline/40 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full text-xs" id="createStudentCode" name="studentCode" placeholder="VD: HE170123 hoặc GV12345" />
-                    <p id="createCodeHelper" class="text-[10px] text-on-surface-variant mt-1">Mã số viên chức (GV + 4-6 số) là bắt buộc cho Giảng viên.</p>
+                    <input type="text" class="bg-surface border border-outline-variant/50 rounded-lg px-3 py-2 text-on-surface placeholder:text-outline/40 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full text-xs" id="createStudentCode" name="studentCode" placeholder="VD: HE170123" />
+                    <p id="createCodeHelper" class="text-[10px] text-on-surface-variant mt-1">Có thể bỏ trống — hệ thống sẽ tự sinh mã HE + 6 số.</p>
                 </div>
-                <label class="flex items-center gap-2 pt-2 cursor-pointer select-none">
-                    <input type="checkbox" class="rounded border-outline-variant bg-surface text-primary focus:ring-primary w-4 h-4" id="createMustChange" name="mustChangePassword" value="true" checked />
-                    <span class="text-xs text-on-surface-variant">Buộc đặt lại mật khẩu ở lần đăng nhập đầu tiên</span>
-                </label>
+                <input type="hidden" name="mustChangePassword" value="true" />
+                <div class="flex items-center gap-2 pt-2 rounded-lg bg-amber-500/8 border border-amber-500/20 px-3 py-2">
+                    <span class="material-symbols-outlined text-[16px] text-amber-400">shield_lock</span>
+                    <span class="text-[11px] text-on-surface-variant">Tài khoản mới sẽ <strong>bắt buộc</strong> đổi mật khẩu ở lần đăng nhập đầu tiên.</span>
+                </div>
             </div>
             <div class="px-6 py-4 border-t border-outline-variant/30 flex justify-end gap-2">
                 <button type="button" onclick="closeModal('addUserModal')" class="bg-surface border border-outline-variant hover:bg-surface-container-high text-on-surface px-4 py-2 rounded-lg font-label-md text-xs transition-colors">Hủy</button>
@@ -283,6 +284,10 @@
                     <input type="email" class="bg-surface border border-outline-variant/50 rounded-lg px-3 py-2 text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full text-xs" id="editEmail" name="email" required readonly />
                 </div>
                 <div class="space-y-1">
+                    <label for="editUserCode" class="block text-label-md font-bold text-on-surface-variant text-[11px]">Mã số (User Code)</label>
+                    <input type="text" class="bg-surface border border-outline-variant/50 rounded-lg px-3 py-2 text-on-surface font-mono focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full text-xs" id="editUserCode" name="userCode" placeholder="VD: HE170123 hoặc LEC001" />
+                </div>
+                <div class="space-y-1">
                     <label for="editRole" class="block text-label-md font-bold text-on-surface-variant text-[11px]">Vai trò tài khoản</label>
                     <select class="bg-surface border border-outline-variant/50 rounded-lg px-3 py-2 text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full text-xs" id="editRole" name="role">
                         <option value="Student">Sinh viên</option>
@@ -315,6 +320,7 @@
             document.getElementById('editUserId').value = id;
             document.getElementById('editFullName').value = fullName;
             document.getElementById('editEmail').value = email;
+            document.getElementById('editUserCode').value = code !== 'N/A' ? code : '';
             document.getElementById('editRole').value = role;
             document.getElementById('editStatus').value = status;
             openModal('editUserModal');
@@ -335,12 +341,12 @@
             const helper = document.getElementById('createCodeHelper');
             const input = document.getElementById('createStudentCode');
             if (sel.value === 'Lecturer') {
-                helper.textContent = 'Bắt buộc: mã giảng viên phải có dạng GV + 4-6 chữ số (VD: GV12345).';
+                helper.textContent = 'Bắt buộc: mã giảng viên phải có dạng LEC + 3 số (VD: LEC001).';
                 helper.classList.add('text-amber-400');
                 input.required = true;
-                input.placeholder = 'VD: GV12345';
-            } else {
-                helper.textContent = 'Sinh viên có thể bỏ trống — hệ thống sẽ tự sinh mã HE.';
+                input.placeholder = 'VD: LEC001';
+            } else if (sel.value === 'Student') {
+                helper.textContent = 'Có thể bỏ trống — hệ thống sẽ tự sinh mã HE + 6 số.';
                 helper.classList.remove('text-amber-400');
                 input.required = false;
                 input.placeholder = 'VD: HE170123';
@@ -391,7 +397,7 @@
                     rows.forEach((r, idx) => {
                         const fullName = (r[0] || '').toString().trim();
                         const email = (r[1] || '').toString().trim();
-                        const code = (r[2] || '').toString().trim() || ('STU' + Math.floor(100000 + Math.random() * 900000));
+                        const code = (r[2] || '').toString().trim() || ('HE' + Math.floor(100000 + Math.random() * 900000));
                         if (!fullName || !email) {
                             failed++;
                             results.push({ name: fullName, email, status: 'Thất bại', reason: 'Thiếu Họ và tên hoặc Email' });

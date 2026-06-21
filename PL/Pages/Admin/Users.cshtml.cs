@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using System.Text.RegularExpressions;
 using BLL.Interfaces;
 using Core.DTOs.Admin;
@@ -13,8 +13,8 @@ namespace PL.Pages.Admin
     [Authorize(Roles = "Admin")]
     public class UsersModel : PageModel
     {
-        // Lecturer codes are typically GV + 4-6 digits (e.g. GV12345).
-        private static readonly Regex LecturerCodeRegex = new(@"^GV\d{4,6}$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        // Lecturer codes: LEC + 3 digits (e.g. LEC001).
+        private static readonly Regex LecturerCodeRegex = new(@"^LEC\d{3}$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private readonly IAdminService _adminService;
         private readonly IUserService _userService;
@@ -92,7 +92,7 @@ namespace PL.Pages.Admin
         {
             if (string.IsNullOrEmpty(fullName) || string.IsNullOrEmpty(email))
             {
-                TempData["ErrorMessage"] = "Há» tÃªn vÃ  Email lÃ  báº¯t buá»™c.";
+                TempData["ErrorMessage"] = "Họ tên và Email là bắt buộc.";
                 return RedirectToPage(new { Search, Role, PageIndex });
             }
             var userRole = Enum.TryParse<UserRole>(role, true, out var parsed) ? parsed : UserRole.Student;
@@ -101,13 +101,14 @@ namespace PL.Pages.Admin
             {
                 if (string.IsNullOrWhiteSpace(studentCode) || !LecturerCodeRegex.IsMatch(studentCode.Trim()))
                 {
-                    TempData["ErrorMessage"] = "MÃ£ giáº£ng viÃªn lÃ  báº¯t buá»™c vÃ  pháº£i cÃ³ dáº¡ng GV + 4-6 chá»¯ sá»‘ (VD: GV12345).";
+                    TempData["ErrorMessage"] = "Mã giảng viên là bắt buộc và phải có dạng LEC + 3 chữ số (VD: LEC001).";
                     return RedirectToPage(new { Search, Role, PageIndex });
                 }
             }
             else if (string.IsNullOrWhiteSpace(studentCode))
             {
-                studentCode = "STU" + new Random().Next(100000, 999999).ToString();
+                // Auto-generate: HE + 6 digits
+                studentCode = "HE" + new Random().Next(100000, 999999).ToString();
             }
 
             var dto = new UserCreateDto
@@ -120,18 +121,18 @@ namespace PL.Pages.Admin
             };
             var result = await _userService.CreateUserAsync(dto);
             if (!result.IsSuccess) TempData["ErrorMessage"] = result.ErrorMessage;
-            else TempData["SuccessMessage"] = $"ÄÃ£ táº¡o tÃ i khoáº£n {fullName}. Email thÃ´ng bÃ¡o Ä‘Ã£ Ä‘Æ°á»£c gá»­i Ä‘áº¿n {email}.";
+            else TempData["SuccessMessage"] = $"Đã tạo tài khoản {fullName}. Email thông báo đã được gửi đến {email}.";
             return RedirectToPage(new { Search, Role, PageIndex });
         }
 
-        public async Task<IActionResult> OnPostEditUserAsync(Guid id, string fullName, string email, string role, string status)
+        public async Task<IActionResult> OnPostEditUserAsync(Guid id, string fullName, string email, string role, string status, string? userCode = null)
         {
             var userRole = Enum.TryParse<UserRole>(role, true, out var parsedRole) ? parsedRole : UserRole.Student;
             var userStatus = Enum.TryParse<UserStatus>(status, true, out var parsedStatus) ? parsedStatus : UserStatus.Active;
-            var dto = new UserEditDto { Id = id, FullName = fullName, Role = userRole, Status = userStatus };
+            var dto = new UserEditDto { Id = id, FullName = fullName, Role = userRole, Status = userStatus, UserCode = userCode };
             var result = await _userService.UpdateUserAsync(dto);
             if (!result.IsSuccess) TempData["ErrorMessage"] = result.ErrorMessage;
-            else TempData["SuccessMessage"] = $"ÄÃ£ cáº­p nháº­t tÃ i khoáº£n {fullName}.";
+            else TempData["SuccessMessage"] = $"Đã cập nhật tài khoản {fullName}.";
             return RedirectToPage(new { Search, Role, PageIndex });
         }
 
@@ -144,7 +145,7 @@ namespace PL.Pages.Admin
             }
             else
             {
-                TempData["SuccessMessage"] = "ÄÃ£ Ä‘áº·t láº¡i máº­t kháº©u vÃ  kÃ­ch hoáº¡t tÃ i khoáº£n. Email thÃ´ng bÃ¡o Ä‘Ã£ Ä‘Æ°á»£c gá»­i cho ngÆ°á»i dÃ¹ng.";
+                TempData["SuccessMessage"] = "Đã đặt lại mật khẩu và kích hoạt tài khoản. Email thông báo đã được gửi cho người dùng.";
             }
             return RedirectToPage(new { Search, Role, PageIndex });
         }
@@ -152,7 +153,7 @@ namespace PL.Pages.Admin
         public async Task<IActionResult> OnPostDeleteUserAsync(Guid id)
         {
             var result = await _userService.DeleteUserAsync(id);
-            if (result.IsSuccess) TempData["SuccessMessage"] = "ÄÃ£ xÃ³a tÃ i khoáº£n.";
+            if (result.IsSuccess) TempData["SuccessMessage"] = "Đã xóa tài khoản.";
             else TempData["ErrorMessage"] = result.ErrorMessage;
             return RedirectToPage(new { Search, Role, PageIndex });
         }
@@ -167,7 +168,7 @@ namespace PL.Pages.Admin
         public async Task<JsonResult> OnPostBulkImportAsync([FromBody] List<ImportRow> rows)
         {
             if (rows == null || !rows.Any())
-                return new JsonResult(new { success = false, message = "KhÃ´ng nháº­n Ä‘Æ°á»£c dá»¯ liá»‡u." });
+                return new JsonResult(new { success = false, message = "Không nhận được dữ liệu." });
 
             int successCount = 0, failCount = 0;
             var results = new List<object>();
@@ -176,16 +177,17 @@ namespace PL.Pages.Admin
                 if (string.IsNullOrWhiteSpace(row.Email) || string.IsNullOrWhiteSpace(row.FullName))
                 {
                     failCount++;
-                    results.Add(new { name = row.FullName, email = row.Email, status = "Failed", reason = "Thiáº¿u há» tÃªn hoáº·c email" });
+                    results.Add(new { name = row.FullName, email = row.Email, status = "Failed", reason = "Thiếu họ tên hoặc email" });
                     continue;
                 }
                 if (!row.Email.Contains("@"))
                 {
                     failCount++;
-                    results.Add(new { name = row.FullName, email = row.Email, status = "Failed", reason = "Email khÃ´ng Ä‘Ãºng Ä‘á»‹nh dáº¡ng" });
+                    results.Add(new { name = row.FullName, email = row.Email, status = "Failed", reason = "Email không đúng định dạng" });
                     continue;
                 }
-                var code = string.IsNullOrWhiteSpace(row.StudentCode) ? "STU" + new Random().Next(100000, 999999).ToString() : row.StudentCode;
+                // Auto-generate: HE + 6 digits
+                var code = string.IsNullOrWhiteSpace(row.StudentCode) ? "HE" + new Random().Next(100000, 999999).ToString() : row.StudentCode;
                 var dto = new UserCreateDto { Email = row.Email, FullName = row.FullName, Role = UserRole.Student, UserCode = code, MustChangePassword = true };
                 var result = await _userService.CreateUserAsync(dto);
                 if (result.IsSuccess)

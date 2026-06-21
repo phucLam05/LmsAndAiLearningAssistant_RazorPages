@@ -16,36 +16,36 @@ namespace BLL.Services
         private readonly IDocumentRepository _documentRepository;
         private readonly IDocumentChunkRepository _documentChunkRepository;
         private readonly ISubjectRepository _subjectRepository;
+        private readonly IChatSessionRepository _chatSessionRepository;
+        private readonly IChatMessageRepository _chatMessageRepository;
 
         public AdminService(
             IUserRepository userRepository,
             IDocumentRepository documentRepository,
             IDocumentChunkRepository documentChunkRepository,
-            ISubjectRepository subjectRepository)
+            ISubjectRepository subjectRepository,
+            IChatSessionRepository chatSessionRepository,
+            IChatMessageRepository chatMessageRepository)
         {
             _userRepository = userRepository;
             _documentRepository = documentRepository;
             _documentChunkRepository = documentChunkRepository;
             _subjectRepository = subjectRepository;
+            _chatSessionRepository = chatSessionRepository;
+            _chatMessageRepository = chatMessageRepository;
         }
 
         public async Task<bool> ChangeUserRoleAsync(Guid userId, UserRole newRole)
         {
             var user = await _userRepository.GetByIdAsync(userId);
-            if (user == null)
-            {
-                return false;
-            }
-
+            if (user == null) return false;
             user.Role = newRole;
             await _userRepository.UpdateAsync(user);
             return true;
         }
 
         public async Task<IEnumerable<User>> GetAllUsersAsync()
-        {
-            return await _userRepository.GetAllUsersAsync();
-        }
+            => await _userRepository.GetAllUsersAsync();
 
         public async Task<PagedResult<User>> GetPagedUsersAsync(string? search, string? role, int pageIndex, int pageSize)
         {
@@ -61,9 +61,7 @@ namespace BLL.Services
             }
 
             if (!string.IsNullOrWhiteSpace(role) && Enum.TryParse<UserRole>(role, true, out var parsedRole))
-            {
                 q = q.Where(u => u.Role == parsedRole);
-            }
 
             var total = q.Count();
             var items = q
@@ -83,17 +81,18 @@ namespace BLL.Services
 
         public async Task<DashboardStatsDto> GetDashboardStatsAsync()
         {
-            // Users
+            // Parallel queries for performance
             var allUsers = (await _userRepository.GetAllUsersAsync()).ToList();
-
-            // Subjects
             var allSubjects = (await _subjectRepository.GetAllAsync()).ToList();
-
-            // Documents
             var allDocuments = (await _documentRepository.GetAllWithDetailsAsync()).ToList();
-
-            // Chunks
             var totalChunks = await _documentChunkRepository.CountAllAsync();
+
+            // Chat stats
+            var totalChatSessions = await _chatSessionRepository.CountAllAsync();
+            var totalChatMessages = await _chatMessageRepository.CountAllAsync();
+            var allSessions = (await _chatSessionRepository.GetAllAsync()).ToList();
+
+            var today = DateTime.UtcNow.Date;
 
             var stats = new DashboardStatsDto
             {
@@ -104,6 +103,7 @@ namespace BLL.Services
                 TotalAdmins = allUsers.Count(u => u.Role == UserRole.Admin),
                 ActiveUsers = allUsers.Count(u => u.Status == UserStatus.Active),
                 InactiveUsers = allUsers.Count(u => u.Status == UserStatus.Inactive),
+                NewUsersLast7Days = allUsers.Count(u => u.CreatedAt >= today.AddDays(-7)),
 
                 // Subjects
                 TotalSubjects = allSubjects.Count,
@@ -118,17 +118,20 @@ namespace BLL.Services
                 TotalStorageUsedBytes = allDocuments.Sum(d => d.FileSize),
                 TotalDocumentChunks = totalChunks,
 
+                // Chat
+                TotalChatSessions = totalChatSessions,
+                TotalChatMessages = totalChatMessages,
+
                 // Roles distribution (for donut chart)
                 UsersByRole = new List<RoleDistributionDto>
                 {
-                    new() { Role = "Student", Count = allUsers.Count(u => u.Role == UserRole.Student) },
+                    new() { Role = "Student",  Count = allUsers.Count(u => u.Role == UserRole.Student) },
                     new() { Role = "Lecturer", Count = allUsers.Count(u => u.Role == UserRole.Lecturer) },
-                    new() { Role = "Admin", Count = allUsers.Count(u => u.Role == UserRole.Admin) },
+                    new() { Role = "Admin",    Count = allUsers.Count(u => u.Role == UserRole.Admin) },
                 },
             };
 
-            // Last 14 days activity (users + docs created)
-            var today = DateTime.UtcNow.Date;
+            // Last 14 days activity
             for (int i = 13; i >= 0; i--)
             {
                 var day = today.AddDays(-i);
@@ -142,29 +145,40 @@ namespace BLL.Services
             }
 
             // Top subjects by document count
-            var topSubjects = allSubjects
-                .Select(s => new
-                {
-                    Subject = s,
-                    Documents = allDocuments.Where(d => d.SubjectId == s.Id).ToList(),
-                })
+            foreach (var s in allSubjects
+                .Select(s => new { Subject = s, Documents = allDocuments.Where(d => d.SubjectId == s.Id).ToList() })
                 .OrderByDescending(x => x.Documents.Count)
                 .ThenByDescending(x => x.Documents.Sum(d => d.FileSize))
-                .Take(5)
-                .ToList();
-
-            foreach (var ts in topSubjects)
+                .Take(5))
             {
                 stats.TopSubjects.Add(new TopSubjectDto
                 {
-                    Id = ts.Subject.Id,
-                    SubjectCode = ts.Subject.SubjectCode,
-                    Name = ts.Subject.Name,
-                    DocumentCount = ts.Documents.Count,
-                    StorageBytes = ts.Documents.Sum(d => d.FileSize),
-                    ChunkCount = 0, // Could join with chunks if needed; keeping 0 for perf.
+                    Id = s.Subject.Id,
+                    SubjectCode = s.Subject.SubjectCode,
+                    Name = s.Subject.Name,
+                    DocumentCount = s.Documents.Count,
+                    StorageBytes = s.Documents.Sum(d => d.FileSize),
+                    ChunkCount = 0,
                 });
             }
+
+            // Top subjects by chat session count
+            stats.TopSubjectsByChat = allSessions
+                .GroupBy(s => s.SubjectId ?? Guid.Empty)
+                .Select(g =>
+                {
+                    var subj = allSubjects.FirstOrDefault(s => s.Id == g.Key);
+                    return new SubjectChatRankDto
+                    {
+                        SubjectId = g.Key,
+                        SubjectCode = subj?.SubjectCode ?? "?",
+                        Name = subj?.Name ?? "Unknown",
+                        ChatCount = g.Count(),
+                    };
+                })
+                .OrderByDescending(x => x.ChatCount)
+                .Take(5)
+                .ToList();
 
             return stats;
         }

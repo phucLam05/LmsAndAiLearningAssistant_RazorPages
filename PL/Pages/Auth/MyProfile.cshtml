@@ -1,0 +1,113 @@
+@page
+@model PL.Pages.Auth.MyProfileModel
+@{
+    ViewData["Title"] = "Hồ sơ cá nhân";
+}
+
+<div class="max-w-xl mx-auto space-y-6">
+    <!-- Header -->
+    <div class="flex items-center gap-4 mb-2">
+        <div class="w-14 h-14 rounded-2xl bg-primary/15 text-primary font-bold text-2xl flex items-center justify-center select-none">
+            @(string.IsNullOrEmpty(User.Identity?.Name) ? "U" : User.Identity!.Name.Substring(0, 1).ToUpper())
+        </div>
+        <div>
+            <h1 class="text-xl font-bold text-on-surface">@User.Identity?.Name</h1>
+            <p class="text-xs text-outline">@User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value</p>
+            <span class="mt-1 inline-flex items-center px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container text-[10px] font-bold uppercase tracking-wider">
+                @User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
+            </span>
+        </div>
+    </div>
+
+    <!-- Profile info card -->
+    <div class="bg-surface-container-high/60 backdrop-blur-md border border-outline-variant/40 rounded-2xl p-6 shadow-xl">
+        <h2 class="text-sm font-bold text-on-surface mb-4 flex items-center gap-2">
+            <span class="material-symbols-outlined text-[18px] text-primary">badge</span>
+            Thông tin tài khoản
+        </h2>
+        <div class="space-y-3">
+            <div class="flex justify-between items-center py-2 border-b border-outline-variant/20">
+                <span class="text-xs text-on-surface-variant font-semibold">Họ và tên</span>
+                <span class="text-xs text-on-surface font-bold">@User.Identity?.Name</span>
+            </div>
+            <div class="flex justify-between items-center py-2 border-b border-outline-variant/20">
+                <span class="text-xs text-on-surface-variant font-semibold">Email</span>
+                <span class="text-xs text-on-surface font-mono">@User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value</span>
+            </div>
+            <div class="flex justify-between items-center py-2">
+                <span class="text-xs text-on-surface-variant font-semibold">Mã số</span>
+                <span class="text-xs text-on-surface font-mono font-bold">@Model.UserCode</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change password card -->
+    <div class="bg-surface-container-high/60 backdrop-blur-md border border-outline-variant/40 rounded-2xl p-6 shadow-xl">
+        <h2 class="text-sm font-bold text-on-surface mb-4 flex items-center gap-2">
+            <span class="material-symbols-outlined text-[18px] text-primary">lock_reset</span>
+            Đổi mật khẩu
+        </h2>
+
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="bg-error-container/20 border border-error-container/40 text-error p-3 rounded-xl text-xs flex items-start gap-2 mb-4">
+                <span class="material-symbols-outlined text-[16px] shrink-0">error</span>
+                <div asp-validation-summary="ModelOnly"></div>
+            </div>
+        }
+
+        <form method="post" asp-page-handler="ChangePassword" class="space-y-4">
+            <div class="space-y-1">
+                <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">Mật khẩu hiện tại</label>
+                <div class="relative">
+                    <span class="material-symbols-outlined absolute left-3 top-3 text-outline text-[18px]">vpn_key</span>
+                    <input type="password" name="currentPassword" class="bg-surface-container-low border border-outline-variant/60 rounded-xl pl-10 pr-4 py-3 text-on-surface placeholder:text-outline-variant/60 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full transition-all text-xs" placeholder="Nhập mật khẩu hiện tại" required />
+                </div>
+            </div>
+
+            <div class="space-y-1">
+                <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">Mật khẩu mới</label>
+                <div class="relative">
+                    <span class="material-symbols-outlined absolute left-3 top-3 text-outline text-[18px]">lock</span>
+                    <input type="password" name="newPassword" id="newPassword" class="bg-surface-container-low border border-outline-variant/60 rounded-xl pl-10 pr-4 py-3 text-on-surface placeholder:text-outline-variant/60 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full transition-all text-xs" placeholder="Ít nhất 6 ký tự" minlength="6" required />
+                </div>
+            </div>
+
+            <div class="space-y-1">
+                <label class="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">Xác nhận mật khẩu mới</label>
+                <div class="relative">
+                    <span class="material-symbols-outlined absolute left-3 top-3 text-outline text-[18px]">lock</span>
+                    <input type="password" name="confirmPassword" id="confirmPassword" class="bg-surface-container-low border border-outline-variant/60 rounded-xl pl-10 pr-4 py-3 text-on-surface placeholder:text-outline-variant/60 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full transition-all text-xs" placeholder="Nhập lại mật khẩu mới" minlength="6" required />
+                </div>
+                <p id="matchHint" class="text-[10px] mt-1 hidden"></p>
+            </div>
+
+            <button type="submit" class="w-full bg-primary hover:bg-primary/90 text-on-primary font-bold py-3 px-4 rounded-xl shadow-lg transition-all duration-200 flex items-center justify-center gap-2 hover:scale-[1.01] mt-2">
+                <span class="material-symbols-outlined text-[18px]">lock_reset</span>
+                <span>Cập nhật mật khẩu</span>
+            </button>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const np = document.getElementById('newPassword');
+        const cp = document.getElementById('confirmPassword');
+        const hint = document.getElementById('matchHint');
+
+        function checkMatch() {
+            if (!cp.value) { hint.classList.add('hidden'); return; }
+            if (np.value === cp.value) {
+                hint.textContent = '✓ Mật khẩu khớp';
+                hint.className = 'text-[10px] mt-1 text-tertiary';
+            } else {
+                hint.textContent = '✗ Mật khẩu chưa khớp';
+                hint.className = 'text-[10px] mt-1 text-error';
+            }
+            hint.classList.remove('hidden');
+        }
+        np.addEventListener('input', checkMatch);
+        cp.addEventListener('input', checkMatch);
+    </script>
+}

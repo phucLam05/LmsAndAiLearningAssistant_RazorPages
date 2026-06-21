@@ -1,4 +1,4 @@
-﻿@using Core.Entities
+@using Core.Entities
 @{
     var isAuthenticated = User.Identity?.IsAuthenticated == true;
     // RouteData.Values["page"] is e.g. "/Auth/Login", "/Subject/Index"
@@ -120,7 +120,11 @@
                                 @userRoleStr
                             </span>
                         </div>
-                        <div class="pt-4">
+                        <div class="pt-4 flex flex-col gap-2">
+                            <a asp-page="/Auth/MyProfile" class="w-full flex items-center gap-2 px-4 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface transition-colors text-xs font-semibold">
+                                <span class="material-symbols-outlined text-[18px]">lock_reset</span>
+                                Đổi mật khẩu
+                            </a>
                             <form method="post" asp-page="/Auth/Logout" id="logoutForm">
                                 @Html.AntiForgeryToken()
                                 <button type="submit" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-error-container text-on-error-container hover:bg-error-container/80 font-label-md text-label-md rounded-lg transition-colors font-bold cursor-pointer border-0">

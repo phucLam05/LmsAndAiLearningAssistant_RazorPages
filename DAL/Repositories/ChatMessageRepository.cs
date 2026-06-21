@@ -27,5 +27,8 @@ namespace DAL.Repositories
                 .OrderBy(m => m.CreatedAt)
                 .ToListAsync();
         }
+
+        public async Task<int> CountAllAsync()
+            => await _context.ChatMessages.CountAsync();
     }
 }

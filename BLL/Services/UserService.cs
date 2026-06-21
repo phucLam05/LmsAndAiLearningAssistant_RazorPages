@@ -181,6 +181,19 @@ namespace BLL.Services
             user.Status = dto.Status;
             user.UpdatedAt = DateTime.UtcNow;
 
+            // Update UserCode only if provided and different
+            if (!string.IsNullOrWhiteSpace(dto.UserCode))
+            {
+                var normalizedCode = dto.UserCode.Trim().ToUpperInvariant();
+                if (normalizedCode != user.UserCode)
+                {
+                    var codeExists = await _userRepository.UserCodeExistsAsync(normalizedCode);
+                    if (codeExists)
+                        return Result.Failure($"Mã '{normalizedCode}' đã tồn tại.");
+                    user.UserCode = normalizedCode;
+                }
+            }
+
             await _userRepository.UpdateAsync(user);
             return Result.Success();
         }

@@ -54,5 +54,11 @@ namespace DAL.Repositories
             _context.ChatSessions.Remove(s);
             await _context.SaveChangesAsync();
         }
+
+        public async Task<int> CountAllAsync()
+            => await _context.ChatSessions.CountAsync();
+
+        public async Task<IReadOnlyList<ChatSession>> GetAllAsync()
+            => await _context.ChatSessions.AsNoTracking().ToListAsync();
     }
 }

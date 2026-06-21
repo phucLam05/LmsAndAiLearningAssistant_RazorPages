@@ -1,4 +1,4 @@
-﻿@page
+@page
 @model PL.Pages.Admin.IndexModel
 @{
     ViewData["Title"] = "Bảng điều khiển Quản trị";
@@ -9,18 +9,15 @@
         string[] units = { "B", "KB", "MB", "GB", "TB" };
         double size = bytes;
         int unit = 0;
-        while (size >= 1024 && unit < units.Length - 1)
-        {
-            size /= 1024;
-            unit++;
-        }
+        while (size >= 1024 && unit < units.Length - 1) { size /= 1024; unit++; }
         return $"{size:0.##} {units[unit]}";
     }
-
     string FormatNumber(long n) => n >= 1000 ? $"{n:N0}" : n.ToString();
 }
 
 <div class="space-y-8">
+
+    
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 select-none">
         <div>
             <span class="bg-primary/10 text-primary border border-primary/20 px-2.5 py-0.5 rounded-lg text-xs font-mono font-bold tracking-tight">
@@ -49,6 +46,7 @@
         </div>
     </div>
 
+    
     <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 select-none">
         <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-5 relative overflow-hidden group">
             <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
@@ -74,20 +72,61 @@
             <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                 <span class="material-symbols-outlined text-[64px] text-secondary">database</span>
             </div>
-            <p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-1">Dung lượng ổ đĩa</p>
+            <p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-1">Dung lượng</p>
             <h3 class="font-headline-lg text-headline-lg font-bold text-on-surface">@FormatBytes(Model.Stats.TotalStorageUsedBytes)</h3>
-            <p class="font-label-md text-label-md text-outline mt-3">Đã upload lên Supabase</p>
+            <p class="font-label-md text-label-md text-outline mt-3">@FormatNumber(Model.Stats.TotalDocumentChunks) chunks embedding</p>
         </div>
         <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-5 relative overflow-hidden group">
             <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                <span class="material-symbols-outlined text-[64px] text-tertiary">memory</span>
+                <span class="material-symbols-outlined text-[64px] text-tertiary">chat</span>
             </div>
-            <p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-1">AI Tokens tiêu thụ</p>
-            <h3 class="font-headline-lg text-headline-lg font-bold text-on-surface">@FormatNumber(Model.Stats.TotalTokensConsumed)</h3>
-            <p class="font-label-md text-label-md text-outline mt-3">@FormatNumber(Model.Stats.TotalDocumentChunks) chunks</p>
+            <p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-1">Phiên chat AI</p>
+            <h3 class="font-headline-lg text-headline-lg font-bold text-on-surface">@FormatNumber(Model.Stats.TotalChatSessions)</h3>
+            <p class="font-label-md text-label-md text-outline mt-3">@FormatNumber(Model.Stats.TotalChatMessages) tin nhắn</p>
         </div>
     </div>
 
+    
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 select-none">
+        <div class="bg-gradient-to-br from-primary/10 to-transparent border border-primary/25 rounded-xl p-4 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-primary text-[22px]">person_add</span>
+            </div>
+            <div>
+                <p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-wide">Người dùng mới (7 ngày)</p>
+                <p class="text-xl font-bold text-on-surface">@Model.Stats.NewUsersLast7Days</p>
+            </div>
+        </div>
+        <div class="bg-gradient-to-br from-secondary/10 to-transparent border border-secondary/25 rounded-xl p-4 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-secondary/15 flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-secondary text-[22px]">school</span>
+            </div>
+            <div>
+                <p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-wide">Sinh viên</p>
+                <p class="text-xl font-bold text-on-surface">@FormatNumber(Model.Stats.TotalStudents)</p>
+            </div>
+        </div>
+        <div class="bg-gradient-to-br from-tertiary/10 to-transparent border border-tertiary/25 rounded-xl p-4 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-tertiary/15 flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-tertiary text-[22px]">person_book</span>
+            </div>
+            <div>
+                <p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-wide">Giảng viên</p>
+                <p class="text-xl font-bold text-on-surface">@FormatNumber(Model.Stats.TotalLecturers)</p>
+            </div>
+        </div>
+        <div class="bg-gradient-to-br from-on-surface-variant/10 to-transparent border border-outline-variant/30 rounded-xl p-4 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-surface-container-highest flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-on-surface-variant text-[22px]">folder_open</span>
+            </div>
+            <div>
+                <p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-wide">Môn học</p>
+                <p class="text-xl font-bold text-on-surface">@Model.Stats.TotalSubjects <span class="text-xs font-normal text-outline">(@Model.Stats.ActiveSubjects active)</span></p>
+            </div>
+        </div>
+    </div>
+
+    
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 select-none">
         <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-5 flex flex-col">
             <h4 class="font-headline-sm text-base font-bold text-on-surface mb-4">Phân bổ vai trò</h4>
@@ -115,43 +154,84 @@
         </div>
     </div>
 
+    
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 select-none">
         <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-5 flex flex-col">
-            <h4 class="font-headline-sm text-base font-bold text-on-surface mb-4">Hoạt động tài liệu 7 ngày gần nhất</h4>
-            <div class="flex-1 min-h-[240px] flex items-center justify-center">
-                <canvas id="activityChart" class="w-full max-h-[220px]"></canvas>
+            <h4 class="font-headline-sm text-base font-bold text-on-surface mb-4">Hoạt động 14 ngày gần nhất</h4>
+            <div class="flex-1 min-h-[240px]">
+                <canvas id="activityChart" class="w-full h-full max-h-[220px]"></canvas>
             </div>
         </div>
+
         <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-5">
-            <h4 class="font-headline-sm text-base font-bold text-on-surface mb-3">Top môn học</h4>
-            @if (Model.Stats.TopSubjects.Any())
+            <h4 class="font-headline-sm text-base font-bold text-on-surface mb-3">Top môn học được hỏi nhiều nhất</h4>
+            @if (Model.Stats.TopSubjectsByChat.Any())
             {
                 <ul class="space-y-2">
-                    @foreach (var subject in Model.Stats.TopSubjects)
+                    @{ int chatRank = 1; }
+                    @foreach (var item in Model.Stats.TopSubjectsByChat)
                     {
-                        <li class="flex items-center justify-between bg-surface-container border border-outline-variant/20 rounded-lg px-3 py-2">
-                            <div class="min-w-0">
-                                <p class="text-xs font-mono text-primary font-bold">@subject.SubjectCode</p>
-                                <p class="text-sm font-semibold text-on-surface truncate">@subject.Name</p>
+                        var pct = Model.Stats.TopSubjectsByChat.Max(x => x.ChatCount) > 0
+                            ? (int)((double)item.ChatCount / Model.Stats.TopSubjectsByChat.Max(x => x.ChatCount) * 100)
+                            : 0;
+                        <li class="space-y-1">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2 min-w-0">
+                                    <span class="text-[10px] font-bold text-outline w-4 text-right shrink-0">#@chatRank</span>
+                                    <div class="min-w-0">
+                                        <p class="text-xs font-mono text-primary font-bold truncate">@item.SubjectCode</p>
+                                        <p class="text-xs text-on-surface truncate">@item.Name</p>
+                                    </div>
+                                </div>
+                                <span class="text-xs font-bold text-tertiary shrink-0 ml-2">@item.ChatCount chat</span>
                             </div>
-                            <div class="text-right text-[11px] text-on-surface-variant">
-                                <span class="font-bold text-on-surface">@subject.DocumentCount</span> tài liệu
-                                <br />
-                                <span class="font-bold text-tertiary">@subject.ChunkCount</span> chunks
+                            <div class="h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+                                <div class="h-full bg-tertiary rounded-full transition-all duration-700" style="width:@(pct)%"></div>
                             </div>
                         </li>
+                        chatRank++;
                     }
                 </ul>
             }
             else
             {
                 <div class="text-center py-8 text-on-surface-variant text-xs">
-                    Chưa có dữ liệu.
+                    <span class="material-symbols-outlined text-[36px] text-outline block mb-2">chat_bubble</span>
+                    Chưa có phiên chat nào.
                 </div>
             }
         </div>
     </div>
 
+    
+    <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-5">
+        <h4 class="font-headline-sm text-base font-bold text-on-surface mb-3 select-none">Top môn học theo tài liệu</h4>
+        @if (Model.Stats.TopSubjects.Any())
+        {
+            <ul class="space-y-2">
+                @foreach (var subject in Model.Stats.TopSubjects)
+                {
+                    <li class="flex items-center justify-between bg-surface-container border border-outline-variant/20 rounded-lg px-3 py-2">
+                        <div class="min-w-0">
+                            <p class="text-xs font-mono text-primary font-bold">@subject.SubjectCode</p>
+                            <p class="text-sm font-semibold text-on-surface truncate">@subject.Name</p>
+                        </div>
+                        <div class="text-right text-[11px] text-on-surface-variant shrink-0 ml-4">
+                            <span class="font-bold text-on-surface">@subject.DocumentCount</span> tài liệu
+                            <br />
+                            <span class="text-tertiary font-bold">@FormatBytes(subject.StorageBytes)</span>
+                        </div>
+                    </li>
+                }
+            </ul>
+        }
+        else
+        {
+            <div class="text-center py-8 text-on-surface-variant text-xs">Chưa có dữ liệu.</div>
+        }
+    </div>
+
+    
     <div class="space-y-4">
         <h3 class="font-headline-sm text-headline-sm font-bold text-on-surface select-none">Hành động nhanh</h3>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -186,94 +266,86 @@
             </div>
         </div>
     </div>
+
 </div>
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const beViet = { family: 'Be Vietnam Pro', size: 11 };
+            const font = { family: 'system-ui', size: 11 };
             const tickColor = '#c1c6d6';
-            const gridColor = 'rgba(65, 71, 84, 0.3)';
+            const gridColor = 'rgba(65,71,84,0.3)';
 
             // 1) Role doughnut
-            const roleCtx = document.getElementById('roleChart').getContext('2d');
-            new Chart(roleCtx, {
+            new Chart(document.getElementById('roleChart').getContext('2d'), {
                 type: 'doughnut',
                 data: {
                     labels: ['Quản trị viên', 'Giảng viên', 'Sinh viên'],
                     datasets: [{
                         data: [@Model.Stats.AdminCount, @Model.Stats.LecturerCount, @Model.Stats.StudentCount],
-                        backgroundColor: ['rgba(255, 180, 171, 0.85)', 'rgba(173, 199, 255, 0.85)', 'rgba(188, 227, 195, 0.85)'],
-                        borderColor: ['#ffb4ab', '#adc7ff', '#bce3c3'],
-                        borderWidth: 2,
-                        hoverOffset: 8
+                        backgroundColor: ['rgba(255,180,171,0.85)', 'rgba(173,199,255,0.85)', 'rgba(109,221,129,0.75)'],
+                        borderColor: ['#ffb4ab', '#adc7ff', '#6ddd81'],
+                        borderWidth: 2, hoverOffset: 8
                     }]
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    cutout: '60%',
-                    plugins: {
-                        legend: { position: 'bottom', labels: { color: tickColor, font: beViet, padding: 12 } }
-                    }
+                    responsive: true, maintainAspectRatio: false, cutout: '62%',
+                    plugins: { legend: { position: 'bottom', labels: { color: tickColor, font, padding: 14 } } }
                 }
             });
 
             // 2) Top subjects bar
             const subjectEl = document.getElementById('topSubjectsChart');
             if (subjectEl) {
-                const labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Stats.TopSubjects.Select(s => s.SubjectCode + " - " + s.Name)));
+                const subLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Stats.TopSubjects.Select(s => s.SubjectCode)));
                 const docs = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Stats.TopSubjects.Select(s => s.DocumentCount)));
-                const chunks = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Stats.TopSubjects.Select(s => s.ChunkCount)));
                 new Chart(subjectEl.getContext('2d'), {
                     type: 'bar',
                     data: {
-                        labels: labels,
-                        datasets: [
-                            { label: 'Tài liệu', data: docs, backgroundColor: 'rgba(173, 199, 255, 0.85)', borderColor: '#adc7ff', borderWidth: 1, borderRadius: 6 },
-                            { label: 'Chunks', data: chunks, backgroundColor: 'rgba(109, 221, 129, 0.75)', borderColor: '#6ddd81', borderWidth: 1, borderRadius: 6 }
-                        ]
+                        labels: subLabels,
+                        datasets: [{ label: 'Tài liệu', data: docs, backgroundColor: 'rgba(173,199,255,0.85)', borderColor: '#adc7ff', borderWidth: 1, borderRadius: 6 }]
                     },
                     options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { position: 'bottom', labels: { color: tickColor, font: beViet } } },
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom', labels: { color: tickColor, font } } },
                         scales: {
-                            y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: tickColor, font: beViet, precision: 0 } },
-                            x: { grid: { display: false }, ticks: { color: tickColor, font: beViet, maxRotation: 30, minRotation: 0 } }
+                            y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: tickColor, font, precision: 0 } },
+                            x: { grid: { display: false }, ticks: { color: tickColor, font, maxRotation: 30 } }
                         }
                     }
                 });
             }
 
-            // 3) Daily activity line
-            const actEl = document.getElementById('activityChart');
-            const labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Stats.DailyActivity.Select(d => d.Date.ToString("yyyy-MM-dd"))));
-            const values = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Stats.DailyActivity.Select(d => d.Count)));
-            new Chart(actEl.getContext('2d'), {
+            // 3) 14-day activity line (users + docs)
+            const actLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Stats.Last14DaysActivity.Select(d => d.Day.ToString("MM/dd"))));
+            const newUsers = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Stats.Last14DaysActivity.Select(d => d.NewUsers)));
+            const newDocs  = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Stats.Last14DaysActivity.Select(d => d.NewDocuments)));
+            new Chart(document.getElementById('activityChart').getContext('2d'), {
                 type: 'line',
                 data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Số tài liệu tải lên',
-                        data: values,
-                        borderColor: '#adc7ff',
-                        backgroundColor: 'rgba(173, 199, 255, 0.18)',
-                        fill: true,
-                        tension: 0.35,
-                        borderWidth: 2,
-                        pointBackgroundColor: '#adc7ff',
-                        pointRadius: 4
-                    }]
+                    labels: actLabels,
+                    datasets: [
+                        {
+                            label: 'Người dùng mới',
+                            data: newUsers,
+                            borderColor: '#adc7ff', backgroundColor: 'rgba(173,199,255,0.12)',
+                            fill: true, tension: 0.35, borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#adc7ff'
+                        },
+                        {
+                            label: 'Tài liệu mới',
+                            data: newDocs,
+                            borderColor: '#6ddd81', backgroundColor: 'rgba(109,221,129,0.08)',
+                            fill: true, tension: 0.35, borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#6ddd81'
+                        }
+                    ]
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom', labels: { color: tickColor, font: beViet } } },
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { color: tickColor, font } } },
                     scales: {
-                        y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: tickColor, font: beViet, precision: 0 } },
-                        x: { grid: { display: false }, ticks: { color: tickColor, font: beViet } }
+                        y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: tickColor, font, precision: 0 } },
+                        x: { grid: { display: false }, ticks: { color: tickColor, font } }
                     }
                 }
             });

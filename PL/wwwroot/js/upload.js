@@ -30,6 +30,12 @@
     function renderUploadList(card, files) {
         card.classList.add('relative', 'pointer-events-none', 'opacity-95');
 
+        // Prevent re-triggering upload while in-flight
+        const fi = card.querySelector('input[type="file"]');
+        if (fi) fi.disabled = true;
+        const dz = card.querySelector('[id$="Dropzone"],[id$="dropzone"],[id$="DropZone"]');
+        if (dz) dz.style.pointerEvents = 'none';
+
         let overlay = card.querySelector('.upload-overlay');
         if (!overlay) {
             overlay = document.createElement('div');
@@ -227,6 +233,11 @@
             // Show "Done" overlay for 1.2s then reload so user sees fresh list.
             const successCount = rows.filter(r => r.success).length;
             const failCount = rows.length - successCount;
+            // Re-enable dropzone/fileInput
+            const fi2 = card.querySelector('input[type="file"]');
+            if (fi2) fi2.disabled = false;
+            const dz2 = card.querySelector('[id$="Dropzone"],[id$="dropzone"],[id$="DropZone"]');
+            if (dz2) dz2.style.pointerEvents = '';
             setTimeout(() => {
                 if (typeof opts.onAllDone === 'function') opts.onAllDone({ successCount, failCount });
                 else location.reload();

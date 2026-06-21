@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
@@ -80,7 +80,7 @@ namespace PL.Pages.Subject
             return new JsonResult(new
             {
                 success = true,
-                answer = result.Response?.Answer,
+                reply = result.Response?.Answer,   // JS reads data.reply
                 sources = result.Response?.Sources,
                 sessionId = result.SessionId
             });
