@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using BLL.Interfaces;
 using Core.Entities;
 using DAL.Interfaces;
@@ -39,13 +39,13 @@ namespace PL.Pages.Auth
 
             if (string.IsNullOrEmpty(newPassword) || newPassword.Length < 6)
             {
-                ModelState.AddModelError(string.Empty, "Máº­t kháº©u má»›i pháº£i cÃ³ Ã­t nháº¥t 6 kÃ½ tá»±.");
+                ModelState.AddModelError(string.Empty, "Mật khẩu mới phải có ít nhất 6 ký tự.");
                 CurrentEmail = User.FindFirstValue(ClaimTypes.Email);
                 return Page();
             }
             if (newPassword != confirmPassword)
             {
-                ModelState.AddModelError(string.Empty, "Máº­t kháº©u má»›i vÃ  xÃ¡c nháº­n khÃ´ng trÃ¹ng khá»›p.");
+                ModelState.AddModelError(string.Empty, "Mật khẩu mới và xác nhận không trùng khớp.");
                 CurrentEmail = User.FindFirstValue(ClaimTypes.Email);
                 return Page();
             }
@@ -53,20 +53,20 @@ namespace PL.Pages.Auth
             var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (!Guid.TryParse(userIdClaim, out var userId))
             {
-                ModelState.AddModelError(string.Empty, "PhiÃªn Ä‘Äƒng nháº­p khÃ´ng há»£p lá»‡. Vui lÃ²ng Ä‘Äƒng nháº­p láº¡i.");
+                ModelState.AddModelError(string.Empty, "Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.");
                 return RedirectToPage("/Auth/Login");
             }
 
             var user = await _userRepository.GetByIdAsync(userId);
             if (user == null)
             {
-                ModelState.AddModelError(string.Empty, "KhÃ´ng tÃ¬m tháº¥y tÃ i khoáº£n.");
+                ModelState.AddModelError(string.Empty, "Không tìm thấy tài khoản.");
                 return RedirectToPage("/Auth/Login");
             }
 
             if (!string.IsNullOrEmpty(currentPassword) && !BCrypt.Net.BCrypt.Verify(currentPassword, user.PasswordHash))
             {
-                ModelState.AddModelError(string.Empty, "Máº­t kháº©u táº¡m thá»i khÃ´ng chÃ­nh xÃ¡c.");
+                ModelState.AddModelError(string.Empty, "Mật khẩu tạm thời không chính xác.");
                 CurrentEmail = User.FindFirstValue(ClaimTypes.Email);
                 return Page();
             }
@@ -91,7 +91,7 @@ namespace PL.Pages.Auth
             var props = new AuthenticationProperties { IsPersistent = true, ExpiresUtc = DateTimeOffset.UtcNow.AddDays(7) };
             await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity), props);
 
-            TempData["SuccessMessage"] = "Máº­t kháº©u Ä‘Ã£ Ä‘Æ°á»£c cáº­p nháº­t. ChÃ o má»«ng báº¡n Ä‘áº¿n vá»›i LMS AI!";
+            TempData["SuccessMessage"] = "Mật khẩu đã được cập nhật. Chào mừng bạn đến với LMS AI!";
             return role switch
             {
                 "Admin" => RedirectToPage("/Admin/Index"),

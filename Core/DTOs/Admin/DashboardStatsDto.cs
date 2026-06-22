@@ -37,7 +37,7 @@ namespace Core.DTOs.Admin
         public List<SubjectChatRankDto> TopSubjectsByChat { get; set; } = new();
 
         // Aliases for the Razor views
-        public long TotalTokensConsumed => 0; // future: track via Gemini usage metadata
+        public long TotalTokensConsumed { get; set; }
         public int AdminCount => UsersByRole.FirstOrDefault(r => r.Role == "Admin")?.Count ?? 0;
         public int LecturerCount => UsersByRole.FirstOrDefault(r => r.Role == "Lecturer")?.Count ?? 0;
         public int StudentCount => UsersByRole.FirstOrDefault(r => r.Role == "Student")?.Count ?? 0;

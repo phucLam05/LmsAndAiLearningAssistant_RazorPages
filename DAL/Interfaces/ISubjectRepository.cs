@@ -38,9 +38,6 @@ namespace DAL.Interfaces
         /// </summary>
         Task<bool> ExistsAsync(string subjectCode, Guid? excludeId = null);
 
-        /// <summary>Returns an IQueryable so callers can compose filters and paging.</summary>
-        IQueryable<Subject> Query();
-
         Task<(IReadOnlyList<Subject> Items, int TotalCount)> GetPagedAsync(
             string? search, Core.Entities.SubjectStatus? status, int pageIndex, int pageSize);
         Task<(IReadOnlyList<Subject> Items, int TotalCount)> GetPagedByLecturerAsync(

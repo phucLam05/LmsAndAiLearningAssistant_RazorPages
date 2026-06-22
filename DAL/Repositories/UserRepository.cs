@@ -66,11 +66,6 @@ namespace DAL.Repositories
                 .ToListAsync();
         }
 
-        public IQueryable<User> Query()
-        {
-            return _context.Users.AsNoTracking();
-        }
-
         public async Task<IReadOnlyList<User>> QueryUsersAsync(string? search, UserRole? role, UserStatus? status, int pageIndex, int pageSize)
         {
             var q = ApplyFilters(_context.Users.AsNoTracking(), search, role, status);

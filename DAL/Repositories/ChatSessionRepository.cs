@@ -33,6 +33,7 @@ namespace DAL.Repositories
             var q = _context.ChatSessions
                 .AsNoTracking()
                 .Include(s => s.Subject)
+                .Include(s => s.Messages)
                 .Where(s => s.UserId == userId);
 
             if (subjectId.HasValue) q = q.Where(s => s.SubjectId == subjectId.Value);

@@ -1,4 +1,4 @@
-﻿@page
+@page
 @model PL.Pages.Subject.DetailsModel
 @using Core.Entities
 @using Core.DTOs.Documents
@@ -153,10 +153,10 @@
             dropzoneId: 'uploadDropzone',
             fileInputId: 'fileInput',
             cardSelector: '.upload-card',
-            uploadUrl: location.pathname + '?handler=Upload',
+            uploadUrl: '?handler=UploadFile',
             token: token,
             subjectId: '@Model.Subject.Id',
-            fieldName: 'Files'
+            fieldName: 'file'
         });
         LmsUpload.pollDocumentStatus('?handler=GetStatus', token);
     </script>

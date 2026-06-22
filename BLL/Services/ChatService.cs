@@ -23,9 +23,7 @@ namespace BLL.Services
         private readonly IGeminiEmbeddingProvider _embeddingProvider;
         private readonly IChatSessionRepository _chatSessionRepository;
         private readonly IChatMessageRepository _chatMessageRepository;
-        private readonly HttpClient _httpClient;
-        private readonly string _apiKey;
-        private readonly string _baseUrl;
+        private readonly IGeminiChatProvider _chatProvider;
         private readonly ILogger<ChatService> _logger;
 
         public ChatService(
@@ -33,18 +31,15 @@ namespace BLL.Services
             IGeminiEmbeddingProvider embeddingProvider,
             IChatSessionRepository chatSessionRepository,
             IChatMessageRepository chatMessageRepository,
-            HttpClient httpClient,
-            IConfiguration configuration,
+            IGeminiChatProvider chatProvider,
             ILogger<ChatService> logger)
         {
             _documentChunkRepository = documentChunkRepository;
             _embeddingProvider = embeddingProvider;
             _chatSessionRepository = chatSessionRepository;
             _chatMessageRepository = chatMessageRepository;
-            _httpClient = httpClient;
+            _chatProvider = chatProvider;
             _logger = logger;
-            _apiKey = configuration["GeminiSettings:ApiKey"] ?? string.Empty;
-            _baseUrl = configuration["GeminiSettings:BaseUrl"] ?? "https://generativelanguage.googleapis.com/v1beta/";
         }
 
         private static readonly HashSet<string> AllowedModels = new(StringComparer.OrdinalIgnoreCase)
@@ -62,6 +57,8 @@ namespace BLL.Services
             List<Guid>? documentIds = null,
             CancellationToken cancellationToken = default)
         {
+            int? promptTokens = null;
+            int? completionTokens = null;
             if (string.IsNullOrWhiteSpace(query))
             {
                 return new ChatWithSessionDto
@@ -163,8 +160,54 @@ Trả lời ngắn gọn, dùng markdown khi phù hợp.";
                     var resolvedModel = (!string.IsNullOrWhiteSpace(model) && AllowedModels.Contains(model))
                         ? model : DefaultModel;
 
-                    var answer = await GenerateTextAsync(prompt, resolvedModel, cancellationToken);
-                    resp = new ChatResponseDto { Answer = answer, Sources = sources };
+                    var generateResult = await _chatProvider.GenerateTextAsync(prompt, resolvedModel, cancellationToken);
+                    var rawAnswer = generateResult.Answer;
+                    promptTokens = generateResult.PromptTokens;
+                    completionTokens = generateResult.CompletionTokens;
+
+                    // ── Citations Re-mapping & Filtering ──
+                    var usedIndices = new List<int>();
+                    var matches = System.Text.RegularExpressions.Regex.Matches(rawAnswer, @"\[(\d+)\]");
+                    foreach (System.Text.RegularExpressions.Match m in matches)
+                    {
+                        if (int.TryParse(m.Groups[1].Value, out var num) && !usedIndices.Contains(num))
+                        {
+                            usedIndices.Add(num);
+                        }
+                    }
+
+                    var filteredSources = new List<ChatSourceDto>();
+                    var indexMap = new Dictionary<int, int>();
+                    int newIdx = 1;
+                    foreach (var originalIndex in usedIndices)
+                    {
+                        var s = sources.FirstOrDefault(x => x.Index == originalIndex);
+                        if (s != null)
+                        {
+                            indexMap[originalIndex] = newIdx;
+                            filteredSources.Add(new ChatSourceDto
+                            {
+                                Index = newIdx,
+                                DocumentId = s.DocumentId,
+                                FileName = s.FileName,
+                                Content = s.Content,
+                                PageNumber = s.PageNumber
+                            });
+                            newIdx++;
+                        }
+                    }
+
+                    var finalAnswer = System.Text.RegularExpressions.Regex.Replace(rawAnswer, @"\[(\d+)\]", m =>
+                    {
+                        var oldIdx = int.Parse(m.Groups[1].Value);
+                        if (indexMap.TryGetValue(oldIdx, out var mapped))
+                        {
+                            return $"[{mapped}]";
+                        }
+                        return string.Empty; // Remove invalid/unused references
+                    });
+
+                    resp = new ChatResponseDto { Answer = finalAnswer, Sources = filteredSources };
                 }
             }
             catch (Exception ex)
@@ -185,6 +228,8 @@ Trả lời ngắn gọn, dùng markdown khi phù hợp.";
                 Role = "assistant",
                 Content = resp.Answer,
                 SourcesJson = JsonSerializer.Serialize(resp.Sources),
+                PromptTokens = promptTokens,
+                CompletionTokens = completionTokens,
                 CreatedAt = DateTime.UtcNow,
             });
 
@@ -272,6 +317,14 @@ Trả lời ngắn gọn, dùng markdown khi phù hợp.";
             await _chatSessionRepository.DeleteAsync(sessionId);
         }
 
+        public async Task RenameSessionAsync(Guid sessionId, Guid userId, string newTitle)
+        {
+            var s = await _chatSessionRepository.GetByIdAsync(sessionId);
+            if (s == null || s.UserId != userId) return;
+            s.Title = newTitle.Trim();
+            await _chatSessionRepository.UpdateAsync(s);
+        }
+
         // ── helpers ──
         private async Task<ChatSession> CreateSessionAsync(Guid userId, Guid subjectId, string titleSeed)
         {
@@ -287,41 +340,6 @@ Trả lời ngắn gọn, dùng markdown khi phù hợp.";
             };
             await _chatSessionRepository.CreateAsync(session);
             return session;
-        }
-
-        private async Task<string> GenerateTextAsync(string prompt, string model, CancellationToken cancellationToken)
-        {
-            if (string.IsNullOrWhiteSpace(_apiKey))
-                throw new InvalidOperationException("Gemini API key is not configured.");
-
-            var url = $"{_baseUrl.TrimEnd('/')}/models/{model}:generateContent?key={_apiKey}";
-            var requestBody = new
-            {
-                contents = new[] { new { parts = new[] { new { text = prompt } } } }
-            };
-            var json = JsonSerializer.Serialize(requestBody);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-            var response = await _httpClient.PostAsync(url, content, cancellationToken);
-            if (!response.IsSuccessStatusCode)
-            {
-                var error = await response.Content.ReadAsStringAsync(cancellationToken);
-                throw new InvalidOperationException($"Gemini API error: {(int)response.StatusCode} {error}");
-            }
-
-            var responseString = await response.Content.ReadAsStringAsync(cancellationToken);
-            using var doc = JsonDocument.Parse(responseString);
-            try
-            {
-                return doc.RootElement.GetProperty("candidates")[0]
-                    .GetProperty("content").GetProperty("parts")[0]
-                    .GetProperty("text").GetString() ?? "AI không trả về nội dung.";
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to parse Gemini response. Raw: {Raw}", responseString);
-                throw new InvalidOperationException("Không thể phân tích phản hồi từ AI.");
-            }
         }
     }
 }

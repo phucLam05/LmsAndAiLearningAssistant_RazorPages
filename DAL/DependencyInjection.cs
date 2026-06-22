@@ -35,6 +35,8 @@ namespace DAL
 
             services.AddHttpClient<ISupabaseStorageProvider, SupabaseStorageProvider>();
             services.AddHttpClient<IGeminiEmbeddingProvider, GeminiEmbeddingProvider>();
+            services.AddHttpClient<IGeminiChatProvider, GeminiChatProvider>();
+            services.AddScoped<IEmailSenderProvider, SmtpProvider>();
 
             return services;
         }

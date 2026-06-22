@@ -1,6 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using PL.Models.Auth;
+using PL.ViewModels.Auth;
 
 namespace PL.Pages.Auth
 {

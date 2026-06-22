@@ -1,4 +1,4 @@
-﻿using BLL;
+using BLL;
 using Core.Configurations;
 using DAL;
 using Hangfire;
@@ -18,6 +18,7 @@ namespace PL
             // Add services to the container.
             builder.Services.Configure<UploadOptions>(builder.Configuration.GetSection("Upload"));
             builder.Services.AddRazorPages();
+            builder.Services.AddSignalR();
             builder.Services.AddHttpContextAccessor();
 
             builder.Services.AddDataAccessLayer(builder.Configuration);
@@ -79,6 +80,7 @@ namespace PL
             app.MapStaticAssets();
             app.MapRazorPages()
                 .WithStaticAssets();
+            app.MapHub<PL.Hubs.LmsHub>("/lmsHub");
 
             using (var scope = app.Services.CreateScope())
             {

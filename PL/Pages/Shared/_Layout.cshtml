@@ -272,6 +272,49 @@
         });
     </script>
 
+    @if (isAuthenticated)
+    {
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+        <script>
+            (function() {
+                const connection = new signalR.HubConnectionBuilder()
+                    .withUrl("/lmsHub")
+                    .withAutomaticReconnect()
+                    .build();
+
+                connection.on("ReceiveSubjectUpdate", function (action, subjectCode, subjectName) {
+                    let msg = `Có cập nhật môn học.`;
+                    if (subjectCode || subjectName) {
+                        msg = `Môn học ${subjectCode || subjectName} đã được cập nhật (${action}).`;
+                    }
+                    showNotification(msg, 'info');
+
+                    const path = window.location.pathname.toLowerCase();
+                    if (path.includes("/subject") || path.includes("/lecturer/portal")) {
+                        setTimeout(() => window.location.reload(), 1500);
+                    }
+                });
+
+                connection.on("ReceiveDocumentUpdate", function (action, subjectId, documentId, fileName) {
+                    let msg = `Tài liệu có thay đổi.`;
+                    if (fileName) {
+                        msg = `Tài liệu "${fileName}" đã được cập nhật (${action}).`;
+                    }
+                    showNotification(msg, 'success');
+
+                    const path = window.location.pathname.toLowerCase();
+                    if (path.includes("/subject") || path.includes("/lecturer/portal") || path.includes("/document")) {
+                        setTimeout(() => window.location.reload(), 1500);
+                    }
+                });
+
+                connection.start().catch(function (err) {
+                    console.error("SignalR Connection Error: ", err.toString());
+                });
+            })();
+        </script>
+    }
+
     @if (TempData["SuccessMessage"] != null)
     {
         <script>

@@ -30,5 +30,10 @@ namespace DAL.Repositories
 
         public async Task<int> CountAllAsync()
             => await _context.ChatMessages.CountAsync();
+
+        public async Task<long> GetTotalTokensAsync()
+        {
+            return await _context.ChatMessages.SumAsync(m => (long)(m.PromptTokens ?? 0) + (long)(m.CompletionTokens ?? 0));
+        }
     }
 }

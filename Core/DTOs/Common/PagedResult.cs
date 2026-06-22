@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Core.DTOs.Common
 {
-    public class PagedResult<T>
+    public class PagedResult<T> : IPagedResult
     {
         public IEnumerable<T> Items { get; set; } = Enumerable.Empty<T>();
         public int TotalCount { get; set; }

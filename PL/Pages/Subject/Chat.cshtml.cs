@@ -32,8 +32,9 @@ namespace PL.Pages.Subject
         [BindProperty(SupportsGet = true)]
         public Guid? SessionId { get; set; }
 
-        public async Task<IActionResult> OnGetAsync(Guid subjectId)
+        public async Task<IActionResult> OnGetAsync(Guid subjectId, Guid? sessionId)
         {
+            SessionId = sessionId;
             var s = await _subjectService.GetSubjectByIdAsync(subjectId);
             if (s == null) return NotFound();
             Subject = s;
@@ -90,8 +91,20 @@ namespace PL.Pages.Subject
         {
             var userId = GetCurrentUserId();
             if (userId == Guid.Empty)
-                return new JsonResult(new { success = false, message = "Vui lÃ²ng Ä‘Äƒng nháº­p." });
+                return new JsonResult(new { success = false, message = "Vui lòng đăng nhập." });
             await _chatService.DeleteSessionAsync(sessionId, userId);
+            return new JsonResult(new { success = true });
+        }
+
+        public async Task<JsonResult> OnPostRenameSessionAsync(Guid sessionId, string title)
+        {
+            var userId = GetCurrentUserId();
+            if (userId == Guid.Empty)
+                return new JsonResult(new { success = false, message = "Vui lòng đăng nhập." });
+            if (string.IsNullOrWhiteSpace(title))
+                return new JsonResult(new { success = false, message = "Tên không được để trống." });
+
+            await _chatService.RenameSessionAsync(sessionId, userId, title);
             return new JsonResult(new { success = true });
         }
 

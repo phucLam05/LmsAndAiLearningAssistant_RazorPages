@@ -49,26 +49,12 @@ namespace BLL.Services
 
         public async Task<PagedResult<User>> GetPagedUsersAsync(string? search, string? role, int pageIndex, int pageSize)
         {
-            var q = _userRepository.Query();
+            UserRole? parsedRole = null;
+            if (!string.IsNullOrWhiteSpace(role) && Enum.TryParse<UserRole>(role, true, out var r))
+                parsedRole = r;
 
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var s = search.Trim().ToLowerInvariant();
-                q = q.Where(u =>
-                    (u.UserCode != null && u.UserCode.ToLower().Contains(s)) ||
-                    (u.FullName != null && u.FullName.ToLower().Contains(s)) ||
-                    (u.EmailEncrypt != null && u.EmailEncrypt.ToLower().Contains(s)));
-            }
-
-            if (!string.IsNullOrWhiteSpace(role) && Enum.TryParse<UserRole>(role, true, out var parsedRole))
-                q = q.Where(u => u.Role == parsedRole);
-
-            var total = q.Count();
-            var items = q
-                .OrderByDescending(u => u.CreatedAt)
-                .Skip((pageIndex - 1) * pageSize)
-                .Take(pageSize)
-                .ToList();
+            var total = await _userRepository.CountUsersAsync(search, parsedRole, status: null);
+            var items = await _userRepository.QueryUsersAsync(search, parsedRole, status: null, pageIndex, pageSize);
 
             return new PagedResult<User>
             {
@@ -121,6 +107,7 @@ namespace BLL.Services
                 // Chat
                 TotalChatSessions = totalChatSessions,
                 TotalChatMessages = totalChatMessages,
+                TotalTokensConsumed = await _chatMessageRepository.GetTotalTokensAsync(),
 
                 // Roles distribution (for donut chart)
                 UsersByRole = new List<RoleDistributionDto>

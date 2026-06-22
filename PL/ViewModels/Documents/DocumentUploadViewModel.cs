@@ -1,8 +1,8 @@
-﻿using System;
+using System;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Http;
 
-namespace PL.Models.Documents
+namespace PL.ViewModels.Documents
 {
     /// <summary>
     /// Represents the upload form fields for a learning document, including the subject mapping.

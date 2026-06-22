@@ -1,4 +1,4 @@
-﻿@page
+@page
 @model PL.Pages.Subject.BrowseModel
 @{
     ViewData["Title"] = "Khám phá môn học";
@@ -63,7 +63,7 @@ else
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         @foreach (var subject in Model.Page.Items)
         {
-            <div class="bg-surface-container-low border border-outline-variant/30 rounded-2xl p-5 flex flex-col gap-3 shadow-sm hover:border-primary/50 transition-all">
+            <div class="subject-card bg-surface-container-low border border-outline-variant/30 rounded-2xl p-5 flex flex-col gap-3 shadow-sm hover:border-primary/50 transition-all" data-name="@subject.Name.ToLower()" data-code="@subject.SubjectCode?.ToLower()" data-lecturer="@(subject.LecturerName?.ToLower() ?? "")">
                 <div class="flex justify-between items-start">
                     <div class="min-w-0">
                         <span class="font-mono text-[10px] text-primary font-bold tracking-wider uppercase">@subject.SubjectCode</span>
@@ -93,4 +93,29 @@ else
 
     ViewData["PagedResult"] = Model.Page;
     <partial name="_Pager" />
+}
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const searchInput = document.querySelector('input[name="search"]');
+            if (searchInput) {
+                searchInput.addEventListener('input', function () {
+                    const query = this.value.toLowerCase().trim();
+                    const cards = document.querySelectorAll('.subject-card');
+                    cards.forEach(card => {
+                        const name = card.getAttribute('data-name') || '';
+                        const code = card.getAttribute('data-code') || '';
+                        const lecturer = card.getAttribute('data-lecturer') || '';
+                        
+                        if (name.includes(query) || code.includes(query) || lecturer.includes(query)) {
+                            card.style.display = '';
+                        } else {
+                            card.style.display = 'none';
+                        }
+                    });
+                });
+            }
+        });
+    </script>
 }

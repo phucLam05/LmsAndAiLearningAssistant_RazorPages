@@ -1,6 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
-namespace PL.Models.Auth
+namespace PL.ViewModels.Auth
 {
     /// <summary>
     /// View model for the registration form in the Presentation Layer.

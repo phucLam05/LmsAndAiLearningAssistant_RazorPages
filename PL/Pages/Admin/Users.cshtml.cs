@@ -88,7 +88,7 @@ namespace PL.Pages.Admin
             return Page();
         }
 
-        public async Task<IActionResult> OnPostCreateUserAsync(string fullName, string email, string role, string? studentCode, bool mustChangePassword = false)
+        public async Task<IActionResult> OnPostCreateUserAsync(string fullName, string email, string role, string? studentCode)
         {
             if (string.IsNullOrEmpty(fullName) || string.IsNullOrEmpty(email))
             {
@@ -96,6 +96,12 @@ namespace PL.Pages.Admin
                 return RedirectToPage(new { Search, Role, PageIndex });
             }
             var userRole = Enum.TryParse<UserRole>(role, true, out var parsed) ? parsed : UserRole.Student;
+
+            if (userRole == UserRole.Admin)
+            {
+                TempData["ErrorMessage"] = "Không thể tạo tài khoản Admin qua giao diện này.";
+                return RedirectToPage(new { Search, Role, PageIndex });
+            }
 
             if (userRole == UserRole.Lecturer)
             {
@@ -117,7 +123,7 @@ namespace PL.Pages.Admin
                 FullName = fullName,
                 Role = userRole,
                 UserCode = studentCode!,
-                MustChangePassword = mustChangePassword
+                MustChangePassword = true
             };
             var result = await _userService.CreateUserAsync(dto);
             if (!result.IsSuccess) TempData["ErrorMessage"] = result.ErrorMessage;
@@ -128,6 +134,11 @@ namespace PL.Pages.Admin
         public async Task<IActionResult> OnPostEditUserAsync(Guid id, string fullName, string email, string role, string status, string? userCode = null)
         {
             var userRole = Enum.TryParse<UserRole>(role, true, out var parsedRole) ? parsedRole : UserRole.Student;
+            if (userRole == UserRole.Admin)
+            {
+                TempData["ErrorMessage"] = "Không thể gán vai trò Admin qua giao diện này.";
+                return RedirectToPage(new { Search, Role, PageIndex });
+            }
             var userStatus = Enum.TryParse<UserStatus>(status, true, out var parsedStatus) ? parsedStatus : UserStatus.Active;
             var dto = new UserEditDto { Id = id, FullName = fullName, Role = userRole, Status = userStatus, UserCode = userCode };
             var result = await _userService.UpdateUserAsync(dto);
@@ -136,16 +147,16 @@ namespace PL.Pages.Admin
             return RedirectToPage(new { Search, Role, PageIndex });
         }
 
-        public async Task<IActionResult> OnPostResetPasswordAsync(Guid id, string newPassword)
+        public async Task<IActionResult> OnPostResetPasswordAsync(Guid id)
         {
-            var result = await _userService.ResetPasswordAsync(id, newPassword);
+            var result = await _userService.ResetPasswordAsync(id);
             if (!result.IsSuccess)
             {
                 TempData["ErrorMessage"] = result.ErrorMessage;
             }
             else
             {
-                TempData["SuccessMessage"] = "Đã đặt lại mật khẩu và kích hoạt tài khoản. Email thông báo đã được gửi cho người dùng.";
+                TempData["SuccessMessage"] = $"Đã đặt lại mật khẩu thành công. Mật khẩu mới được tự động tạo là: {result.Data}. Email thông báo đã được gửi cho người dùng.";
             }
             return RedirectToPage(new { Search, Role, PageIndex });
         }

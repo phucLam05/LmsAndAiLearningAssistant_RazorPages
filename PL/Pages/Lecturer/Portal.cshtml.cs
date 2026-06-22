@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using BLL.Interfaces;
 using Core.DTOs.Documents;
 using Core.DTOs.Subject;
@@ -6,6 +6,7 @@ using Core.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.SignalR;
 
 namespace PL.Pages.Lecturer
 {
@@ -14,11 +15,13 @@ namespace PL.Pages.Lecturer
     {
         private readonly ISubjectService _subjectService;
         private readonly IDocumentService _documentService;
+        private readonly Microsoft.AspNetCore.SignalR.IHubContext<PL.Hubs.LmsHub> _hubContext;
 
-        public PortalModel(ISubjectService subjectService, IDocumentService documentService)
+        public PortalModel(ISubjectService subjectService, IDocumentService documentService, Microsoft.AspNetCore.SignalR.IHubContext<PL.Hubs.LmsHub> hubContext)
         {
             _subjectService = subjectService;
             _documentService = documentService;
+            _hubContext = hubContext;
         }
 
         public class MockLecturerDoc
@@ -91,6 +94,7 @@ namespace PL.Pages.Lecturer
             if (!result.IsSuccess || result.Data == null)
                 return new JsonResult(new { success = false, message = result.ErrorMessage });
             var docDto = result.Data;
+            await _hubContext.Clients.All.SendAsync("ReceiveDocumentUpdate", "Upload", sg, Guid.Empty, file.FileName);
             var mapped = new MockLecturerDoc
             {
                 Id = docDto.Id,
@@ -109,7 +113,11 @@ namespace PL.Pages.Lecturer
             var userId = GetUserId();
             if (userId == null) return Challenge();
             var r = await _documentService.DeleteAsync(id, userId.Value);
-            if (r.IsSuccess) TempData["SuccessMessage"] = "Document deleted successfully.";
+            if (r.IsSuccess)
+            {
+                TempData["SuccessMessage"] = "Document deleted successfully.";
+                await _hubContext.Clients.All.SendAsync("ReceiveDocumentUpdate", "Delete", subjectId, id, "");
+            }
             else TempData["ErrorMessage"] = r.ErrorMessage;
             return RedirectToPage(new { selectedSubjectId = subjectId.ToString() });
         }
@@ -119,7 +127,11 @@ namespace PL.Pages.Lecturer
             var userId = GetUserId();
             if (userId == null) return Challenge();
             var r = await _documentService.RetryProcessingAsync(id, userId.Value);
-            if (r.IsSuccess) TempData["SuccessMessage"] = "AI processing restarted successfully.";
+            if (r.IsSuccess)
+            {
+                TempData["SuccessMessage"] = "AI processing restarted successfully.";
+                await _hubContext.Clients.All.SendAsync("ReceiveDocumentUpdate", "Retry", subjectId, id, "");
+            }
             else TempData["ErrorMessage"] = r.ErrorMessage;
             return RedirectToPage(new { selectedSubjectId = subjectId.ToString() });
         }

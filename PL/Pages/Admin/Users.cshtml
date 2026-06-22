@@ -205,7 +205,6 @@
                     <select class="bg-surface border border-outline-variant/50 rounded-lg px-3 py-2 text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full text-xs" id="createRole" name="role" onchange="toggleStudentCodeField(this, 'createCodeContainer')">
                         <option value="Student">Sinh viên</option>
                         <option value="Lecturer">Giảng viên</option>
-                        <option value="Admin">Quản trị viên</option>
                     </select>
                 </div>
                 <div class="space-y-1" id="createCodeContainer">
@@ -242,16 +241,7 @@
             <div class="p-6 space-y-4">
                 <div class="bg-surface-container border border-amber-500/20 rounded-lg p-3 text-xs text-on-surface-variant">
                     Tài khoản: <strong id="resetPasswordTarget" class="text-on-surface font-semibold"></strong>
-                    <span class="block text-[10px] mt-0.5">Mật khẩu mới sẽ được gửi qua email cho người dùng. Tài khoản sẽ được kích hoạt ngay lập tức.</span>
-                </div>
-                <div class="space-y-1">
-                    <label for="resetPasswordNew" class="block text-label-md font-bold text-on-surface-variant text-[11px]">Mật khẩu mới (tối thiểu 6 ký tự)</label>
-                    <input type="text" class="bg-surface border border-outline-variant/50 rounded-lg px-3 py-2 text-on-surface placeholder:text-outline/40 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full text-xs font-mono" id="resetPasswordNew" name="newPassword" placeholder="VD: Abc@1234" required minlength="6" />
-                </div>
-                <div class="flex gap-2">
-                    <button type="button" onclick="generateRandomPassword()" class="text-xs bg-surface border border-outline-variant/50 hover:bg-surface-container-high text-primary font-semibold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1">
-                        <span class="material-symbols-outlined text-[14px]">autorenew</span> Tạo ngẫu nhiên
-                    </button>
+                    <span class="block text-[10px] mt-0.5">Hệ thống sẽ tự động tạo mật khẩu ngẫu nhiên mới, gửi qua email cho người dùng và yêu cầu đổi lại ở lần đăng nhập đầu tiên.</span>
                 </div>
             </div>
             <div class="px-6 py-4 border-t border-outline-variant/30 flex justify-end gap-2">
@@ -292,7 +282,6 @@
                     <select class="bg-surface border border-outline-variant/50 rounded-lg px-3 py-2 text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full text-xs" id="editRole" name="role">
                         <option value="Student">Sinh viên</option>
                         <option value="Lecturer">Giảng viên</option>
-                        <option value="Admin">Quản trị viên</option>
                     </select>
                 </div>
                 <div class="space-y-1">
@@ -328,14 +317,7 @@
         function openResetPasswordModal(id, fullName, email) {
             document.getElementById('resetPasswordUserId').value = id;
             document.getElementById('resetPasswordTarget').textContent = fullName + ' (' + email + ')';
-            document.getElementById('resetPasswordNew').value = '';
             openModal('resetPasswordModal');
-        }
-        function generateRandomPassword() {
-            const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@@##$$%%";
-            let pw = '';
-            for (let i = 0; i < 10; i++) pw += chars[Math.floor(Math.random() * chars.length)];
-            document.getElementById('resetPasswordNew').value = pw;
         }
         function toggleStudentCodeField(sel, containerId) {
             const helper = document.getElementById('createCodeHelper');
@@ -458,6 +440,31 @@
         document.addEventListener('DOMContentLoaded', function () {
             const sel = document.getElementById('createRole');
             if (sel) toggleStudentCodeField(sel, 'createCodeContainer');
+
+            // Real-time client-side search filtering
+            const searchInput = document.querySelector('input[name="search"]');
+            if (searchInput) {
+                searchInput.addEventListener('input', function () {
+                    const query = this.value.toLowerCase().trim();
+                    const rows = document.querySelectorAll('tbody tr');
+                    rows.forEach(row => {
+                        const fullNameEl = row.querySelector('.font-body-md');
+                        const emailEl = row.querySelector('.text-xs');
+                        const codeEl = row.querySelector('.font-mono');
+                        if (!fullNameEl && !emailEl) return;
+                        
+                        const fullName = fullNameEl ? fullNameEl.textContent.toLowerCase() : '';
+                        const email = emailEl ? emailEl.textContent.toLowerCase() : '';
+                        const code = codeEl ? codeEl.textContent.toLowerCase() : '';
+                        
+                        if (fullName.includes(query) || email.includes(query) || code.includes(query)) {
+                            row.style.display = '';
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    });
+                });
+            }
         });
     </script>
 }

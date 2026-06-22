@@ -94,8 +94,6 @@ namespace DAL.Repositories
                 (excludeId == null || s.Id != excludeId.Value));
         }
 
-        public IQueryable<Subject> Query() => _db.Subjects.Include(s => s.Lecturer);
-
         public async Task<(IReadOnlyList<Subject> Items, int TotalCount)> GetPagedAsync(
             string? search, SubjectStatus? status, int pageIndex, int pageSize)
         {

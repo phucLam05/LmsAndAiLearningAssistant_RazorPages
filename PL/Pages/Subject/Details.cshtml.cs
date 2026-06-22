@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using BLL.Interfaces;
 using Core.DTOs.Documents;
 using Core.DTOs.Subject;
@@ -6,7 +6,8 @@ using Core.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using PL.Models.Documents;
+using Microsoft.AspNetCore.SignalR;
+using PL.ViewModels.Documents;
 
 namespace PL.Pages.Subject
 {
@@ -15,11 +16,13 @@ namespace PL.Pages.Subject
     {
         private readonly ISubjectService _subjectService;
         private readonly IDocumentService _documentService;
+        private readonly Microsoft.AspNetCore.SignalR.IHubContext<PL.Hubs.LmsHub> _hubContext;
 
-        public DetailsModel(ISubjectService subjectService, IDocumentService documentService)
+        public DetailsModel(ISubjectService subjectService, IDocumentService documentService, Microsoft.AspNetCore.SignalR.IHubContext<PL.Hubs.LmsHub> hubContext)
         {
             _subjectService = subjectService;
             _documentService = documentService;
+            _hubContext = hubContext;
         }
 
         public SubjectDto Subject { get; set; } = new();
@@ -37,54 +40,40 @@ namespace PL.Pages.Subject
             if (subject == null) return NotFound();
             Subject = subject;
 
-            // Student -> redirect to Chat
-            if (UserRole == UserRole.Student) return RedirectToPage("/Subject/Chat", new { subjectId = id });
-
             Documents = await _documentService.GetDocumentsBySubjectIdAsync(id);
             return Page();
         }
 
-        public async Task<IActionResult> OnPostUploadAsync(Guid SubjectId, List<IFormFile> Files)
+        public async Task<JsonResult> OnPostUploadFileAsync(IFormFile file, Guid subjectId)
         {
             var userId = GetUserId();
-            if (userId == null) return Challenge();
-            if (Files == null || Files.Count == 0)
+            if (userId == null) return new JsonResult(new { success = false, message = "Không có quyền truy cập." });
+            if (file == null || file.Length == 0) return new JsonResult(new { success = false, message = "Vui lòng chọn tệp tin." });
+
+            try
             {
-                TempData["ErrorMessage"] = "Vui lÃ²ng chá»n Ã­t nháº¥t má»™t tá»‡p tin há»£p lá»‡.";
-                return RedirectToPage(new { id = SubjectId });
-            }
-            int success = 0, error = 0;
-            string lastError = "";
-            foreach (var file in Files)
-            {
-                try
+                await using var stream = file.OpenReadStream();
+                var dto = new DocumentUploadDto
                 {
-                    await using var stream = file.OpenReadStream();
-                    var dto = new DocumentUploadDto
-                    {
-                        UploadedBy = userId.Value,
-                        SubjectId = SubjectId,
-                        FileName = file.FileName,
-                        ContentType = file.ContentType,
-                        FileSize = file.Length,
-                        Content = stream
-                    };
-                    var r = await _documentService.UploadAsync(dto);
-                    if (r.IsSuccess) success++;
-                    else { error++; lastError = r.ErrorMessage; }
+                    UploadedBy = userId.Value,
+                    SubjectId = subjectId,
+                    FileName = file.FileName,
+                    ContentType = file.ContentType,
+                    FileSize = file.Length,
+                    Content = stream
+                };
+                var r = await _documentService.UploadAsync(dto);
+                if (r.IsSuccess)
+                {
+                    await _hubContext.Clients.All.SendAsync("ReceiveDocumentUpdate", "Upload", subjectId, Guid.Empty, file.FileName);
+                    return new JsonResult(new { success = true });
                 }
-                catch (Exception ex) { error++; lastError = ex.Message; }
+                return new JsonResult(new { success = false, message = r.ErrorMessage });
             }
-            if (error > 0)
+            catch (Exception ex)
             {
-                if (success > 0) TempData["SuccessMessage"] = $"Táº£i lÃªn thÃ nh cÃ´ng {success} tÃ i liá»‡u. CÃ³ {error} tÃ i liá»‡u gáº·p lá»—i: {lastError}";
-                else TempData["ErrorMessage"] = $"Lá»—i táº£i lÃªn tÃ i liá»‡u: {lastError}";
+                return new JsonResult(new { success = false, message = ex.Message });
             }
-            else
-            {
-                TempData["SuccessMessage"] = success > 1 ? $"ÄÃ£ táº£i lÃªn thÃ nh cÃ´ng {success} tÃ i liá»‡u vÃ  báº¯t Ä‘áº§u phÃ¢n tÃ­ch AI." : "TÃ i liá»‡u Ä‘Ã£ Ä‘Æ°á»£c táº£i lÃªn thÃ nh cÃ´ng vÃ  báº¯t Ä‘áº§u phÃ¢n tÃ­ch AI.";
-            }
-            return RedirectToPage(new { id = SubjectId });
         }
 
         public async Task<IActionResult> OnPostDeleteAsync(Guid id, Guid subjectId)
@@ -92,7 +81,11 @@ namespace PL.Pages.Subject
             var userId = GetUserId();
             if (userId == null) return Challenge();
             var r = await _documentService.DeleteAsync(id, userId.Value);
-            if (r.IsSuccess) TempData["SuccessMessage"] = "Document deleted successfully.";
+            if (r.IsSuccess)
+            {
+                TempData["SuccessMessage"] = "Document deleted successfully.";
+                await _hubContext.Clients.All.SendAsync("ReceiveDocumentUpdate", "Delete", subjectId, id, "");
+            }
             else TempData["ErrorMessage"] = r.ErrorMessage;
             return RedirectToPage(new { id = subjectId });
         }
@@ -102,7 +95,11 @@ namespace PL.Pages.Subject
             var userId = GetUserId();
             if (userId == null) return Challenge();
             var r = await _documentService.RetryProcessingAsync(id, userId.Value);
-            if (r.IsSuccess) TempData["SuccessMessage"] = "AI processing restarted successfully.";
+            if (r.IsSuccess)
+            {
+                TempData["SuccessMessage"] = "AI processing restarted successfully.";
+                await _hubContext.Clients.All.SendAsync("ReceiveDocumentUpdate", "Retry", subjectId, id, "");
+            }
             else TempData["ErrorMessage"] = r.ErrorMessage;
             return RedirectToPage(new { id = subjectId });
         }

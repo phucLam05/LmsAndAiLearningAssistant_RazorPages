@@ -82,7 +82,7 @@
             </div>
             <p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-1">Phiên chat AI</p>
             <h3 class="font-headline-lg text-headline-lg font-bold text-on-surface">@FormatNumber(Model.Stats.TotalChatSessions)</h3>
-            <p class="font-label-md text-label-md text-outline mt-3">@FormatNumber(Model.Stats.TotalChatMessages) tin nhắn</p>
+            <p class="font-label-md text-label-md text-outline mt-3">@FormatNumber(Model.Stats.TotalChatMessages) tin nhắn · @FormatNumber(Model.Stats.TotalTokensConsumed) tokens</p>
         </div>
     </div>
 
@@ -163,41 +163,21 @@
             </div>
         </div>
 
-        <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-5">
-            <h4 class="font-headline-sm text-base font-bold text-on-surface mb-3">Top môn học được hỏi nhiều nhất</h4>
+        <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-5 flex flex-col">
+            <h4 class="font-headline-sm text-base font-bold text-on-surface mb-4">Top môn học được hỏi nhiều nhất</h4>
             @if (Model.Stats.TopSubjectsByChat.Any())
             {
-                <ul class="space-y-2">
-                    @{ int chatRank = 1; }
-                    @foreach (var item in Model.Stats.TopSubjectsByChat)
-                    {
-                        var pct = Model.Stats.TopSubjectsByChat.Max(x => x.ChatCount) > 0
-                            ? (int)((double)item.ChatCount / Model.Stats.TopSubjectsByChat.Max(x => x.ChatCount) * 100)
-                            : 0;
-                        <li class="space-y-1">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-2 min-w-0">
-                                    <span class="text-[10px] font-bold text-outline w-4 text-right shrink-0">#@chatRank</span>
-                                    <div class="min-w-0">
-                                        <p class="text-xs font-mono text-primary font-bold truncate">@item.SubjectCode</p>
-                                        <p class="text-xs text-on-surface truncate">@item.Name</p>
-                                    </div>
-                                </div>
-                                <span class="text-xs font-bold text-tertiary shrink-0 ml-2">@item.ChatCount chat</span>
-                            </div>
-                            <div class="h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
-                                <div class="h-full bg-tertiary rounded-full transition-all duration-700" style="width:@(pct)%"></div>
-                            </div>
-                        </li>
-                        chatRank++;
-                    }
-                </ul>
+                <div class="flex-1 min-h-[240px] flex items-center justify-center">
+                    <canvas id="topSubjectsChatChart" class="w-full max-h-[220px]"></canvas>
+                </div>
             }
             else
             {
-                <div class="text-center py-8 text-on-surface-variant text-xs">
-                    <span class="material-symbols-outlined text-[36px] text-outline block mb-2">chat_bubble</span>
-                    Chưa có phiên chat nào.
+                <div class="flex-1 min-h-[240px] flex items-center justify-center text-center text-on-surface-variant text-xs">
+                    <div>
+                        <span class="material-symbols-outlined text-[36px] text-outline block mb-2">chat_bubble</span>
+                        Chưa có phiên chat nào.
+                    </div>
                 </div>
             }
         </div>
@@ -349,6 +329,37 @@
                     }
                 }
             });
+
+            // 4) Top subjects by chat (horizontal bar chart)
+            const chatChartEl = document.getElementById('topSubjectsChatChart');
+            if (chatChartEl) {
+                const chatLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Stats.TopSubjectsByChat.Select(s => s.SubjectCode)));
+                const chatCounts = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Stats.TopSubjectsByChat.Select(s => s.ChatCount)));
+                new Chart(chatChartEl.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: chatLabels,
+                        datasets: [{
+                            label: 'Lượt chat',
+                            data: chatCounts,
+                            backgroundColor: 'rgba(255,180,171,0.85)',
+                            borderColor: '#ffb4ab',
+                            borderWidth: 1,
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: tickColor, font, precision: 0 } },
+                            y: { grid: { display: false }, ticks: { color: tickColor, font } }
+                        }
+                    }
+                });
+            }
         });
     </script>
 }

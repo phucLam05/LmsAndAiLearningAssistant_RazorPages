@@ -28,12 +28,6 @@ namespace DAL.Interfaces
 
         Task<int> CountUsersAsync(string? search, UserRole? role, UserStatus? status);
 
-        /// <summary>
-        /// Returns an IQueryable&lt;User&gt; so the service layer can compose search/role
-        /// filters with paging (used by Admin → Users page).
-        /// </summary>
-        IQueryable<User> Query();
-
         Task<bool> UserCodeExistsAsync(string userCode);
     }
 }

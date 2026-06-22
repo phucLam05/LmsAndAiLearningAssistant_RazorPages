@@ -26,5 +26,6 @@ namespace BLL.Interfaces
         Task<Core.DTOs.Chat.ChatSessionDetailDto?> GetSessionWithMessagesAsync(Guid sessionId, Guid userId);
         Task<IReadOnlyList<Core.DTOs.Chat.ChatMessageDto>> GetSessionMessagesAsync(Guid sessionId, Guid userId);
         Task DeleteSessionAsync(Guid sessionId, Guid userId);
+        Task RenameSessionAsync(Guid sessionId, Guid userId, string newTitle);
     }
 }

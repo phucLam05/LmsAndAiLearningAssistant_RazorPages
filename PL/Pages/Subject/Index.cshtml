@@ -1,4 +1,4 @@
-﻿@page
+@page
 @model PL.Pages.Subject.IndexModel
 @using Core.DTOs.Subject
 @using Core.Entities
@@ -127,18 +127,18 @@ else
                         </button>
                     </form>
                 }
-                <div class="flex gap-2 mt-auto pt-3 border-t border-outline-variant/20">
-                    <a asp-page="/Subject/Details" asp-route-id="@subject.Id" class="flex-1 bg-primary/10 hover:bg-primary text-primary hover:text-on-primary text-center font-label-md text-xs font-bold py-2 rounded-lg transition-colors">
+                <div class="flex items-stretch gap-2 mt-auto pt-3 border-t border-outline-variant/20">
+                    <a asp-page="/Subject/Details" asp-route-id="@subject.Id" class="flex-1 bg-primary/10 hover:bg-primary text-primary hover:text-on-primary text-center font-label-md text-xs font-bold py-2 rounded-lg transition-colors flex items-center justify-center">
                         @if (isStudent) { <span>Trò chuyện</span> } else { <span>Chi tiết</span> }
                     </a>
                     @if (isAdmin)
                     {
-                        <button type="button" onclick="prepareEditModal('@subject.Id', '@subject.Name', '@subject.Description', '@subject.LecturerId', '@subject.Status')" class="px-3 bg-surface border border-outline-variant hover:bg-surface-container-high rounded-lg text-on-surface transition-colors" title="Sửa">
+                        <button type="button" onclick="prepareEditModal('@subject.Id', '@subject.Name', '@subject.Description', '@subject.LecturerId', '@subject.Status')" class="px-3 bg-surface border border-outline-variant hover:bg-surface-container-high rounded-lg text-on-surface transition-colors flex items-center justify-center" title="Sửa">
                             <span class="material-symbols-outlined text-[16px]">edit</span>
                         </button>
-                        <form method="post" asp-page-handler="Delete" asp-route-id="@subject.Id" class="inline" data-confirm="Bạn có chắc chắn muốn xóa môn học @subject.Name?">
+                        <form method="post" asp-page-handler="Delete" asp-route-id="@subject.Id" class="flex m-0" data-confirm="Bạn có chắc chắn muốn xóa môn học @subject.Name?">
                             @Html.AntiForgeryToken()
-                            <button type="submit" class="px-3 bg-surface border border-outline-variant hover:bg-error-container/20 rounded-lg text-error transition-colors" title="Xóa">
+                            <button type="submit" class="px-3 bg-surface border border-outline-variant hover:bg-error-container/20 rounded-lg text-error transition-colors flex items-center justify-center" title="Xóa">
                                 <span class="material-symbols-outlined text-[16px]">delete</span>
                             </button>
                         </form>
@@ -257,5 +257,26 @@ else
             document.getElementById('editStatus').value = status || 'Active';
             openModal('editSubjectModal');
         }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const searchInput = document.querySelector('input[name="search"]');
+            if (searchInput) {
+                searchInput.addEventListener('input', function () {
+                    const query = this.value.toLowerCase().trim();
+                    const cards = document.querySelectorAll('.subject-card');
+                    cards.forEach(card => {
+                        const name = card.getAttribute('data-name') || '';
+                        const code = card.getAttribute('data-code') || '';
+                        const lecturer = card.getAttribute('data-lecturer') || '';
+                        
+                        if (name.includes(query) || code.includes(query) || lecturer.includes(query)) {
+                            card.style.display = '';
+                        } else {
+                            card.style.display = 'none';
+                        }
+                    });
+                });
+            }
+        });
     </script>
 }

@@ -1,4 +1,4 @@
-﻿@page
+@page
 @model PL.Pages.Admin.DocumentsModel
 @using Core.DTOs.Common
 @using Core.Entities
@@ -235,4 +235,35 @@ else
 
     ViewData["PagedResult"] = Model.Page;
     <partial name="_Pager" />
+}
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const searchInput = document.querySelector('input[name="search"]');
+            if (searchInput) {
+                searchInput.addEventListener('input', function () {
+                    const query = this.value.toLowerCase().trim();
+                    const table = document.getElementById('docsTable');
+                    if (!table) return;
+                    const rows = table.querySelectorAll('tbody tr');
+                    rows.forEach(row => {
+                        const nameLink = row.querySelector('td:first-child a');
+                        const name = nameLink ? nameLink.textContent.toLowerCase() : '';
+                        
+                        const subjectCodeEl = row.querySelector('td:nth-child(2) span.font-semibold');
+                        const subjectNameEl = row.querySelector('td:nth-child(2) span.text-outline');
+                        const subjectCode = subjectCodeEl ? subjectCodeEl.textContent.toLowerCase() : '';
+                        const subjectName = subjectNameEl ? subjectNameEl.textContent.toLowerCase() : '';
+                        
+                        if (name.includes(query) || subjectCode.includes(query) || subjectName.includes(query)) {
+                            row.style.display = '';
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    });
+                });
+            }
+        });
+    </script>
 }

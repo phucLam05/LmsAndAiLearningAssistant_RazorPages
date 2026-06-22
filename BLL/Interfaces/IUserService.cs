@@ -19,7 +19,7 @@ namespace BLL.Interfaces
 
         Task<Result> DeleteUserAsync(Guid id);
 
-        Task<Result> ResetPasswordAsync(Guid id, string newPassword);
+        Task<Result<string>> ResetPasswordAsync(Guid id);
 
         Task<Result<int>> ImportStudentsFromExcelAsync(Stream excelStream);
     }

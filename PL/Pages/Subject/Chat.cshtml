@@ -1,4 +1,4 @@
-@page
+@page "/Subject/Chat/{subjectId:guid}/{sessionId:guid?}"
 @model PL.Pages.Subject.ChatModel
 @using Core.Entities
 @inject IDocumentService DocumentService
@@ -162,6 +162,9 @@
                                     <p class="text-[11px] font-semibold text-on-surface truncate" title="@sess.Title">@sess.Title</p>
                                     <p class="text-[9px] text-outline">@sess.MessageCount tin nhắn • @sess.UpdatedAt.ToString("dd/MM HH:mm")</p>
                                 </div>
+                                <button type="button" onclick="event.stopPropagation(); renameSession('@sess.Id', '@sess.Title')" class="opacity-0 group-hover:opacity-100 p-1 text-outline hover:text-primary transition-all" title="Đổi tên">
+                                    <span class="material-symbols-outlined text-[14px]">edit</span>
+                                </button>
                                 <button type="button" onclick="event.stopPropagation(); deleteSession('@sess.Id')" class="opacity-0 group-hover:opacity-100 p-1 text-outline hover:text-error transition-all" title="Xóa">
                                     <span class="material-symbols-outlined text-[14px]">delete</span>
                                 </button>
@@ -255,6 +258,10 @@
                         </button>
                     </div>
                 </div>
+                <div id="viewerQuote" class="p-3 bg-primary/5 border-b border-outline-variant/30 text-xs text-on-surface select-text italic hidden">
+                    <strong class="text-[10px] text-primary uppercase font-bold tracking-wider not-italic block mb-1">Nội dung trích dẫn:</strong>
+                    <p id="viewerQuoteText" class="text-on-surface-variant leading-relaxed"></p>
+                </div>
                 <div id="viewerBody" class="h-[45vh] overflow-auto bg-white text-black">
                     <div id="viewerLoading" class="hidden h-full flex items-center justify-center text-xs text-on-surface-variant">Đang tải tài liệu...</div>
                     <canvas id="pdfCanvas" class="hidden mx-auto"></canvas>
@@ -281,7 +288,6 @@
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.mjs" type="module"></script>
     <script>
         const chatForm = document.getElementById('chatForm');
         const userInput = document.getElementById('userInput');
@@ -300,12 +306,16 @@
         function showPopover(element, index, sources) {
             clearTimeout(activePopoverTimer);
             if (!popover) return;
-            const source = sources.find(s => s.index === index);
+            const source = sources.find(s => (s.index !== undefined ? s.index : s.Index) === index);
             if (!source) return;
-            document.getElementById('popoverIndex').textContent = source.index;
-            document.getElementById('popoverFileName').textContent = source.fileName;
-            document.getElementById('popoverPageNumber').textContent = source.pageNumber ? `Trang ${source.pageNumber}` : 'Tài liệu';
-            document.getElementById('popoverContent').textContent = source.content;
+            const sIdx = source.index !== undefined ? source.index : source.Index;
+            const sFileName = source.fileName || source.FileName || 'Tài liệu';
+            const sPageNumber = source.pageNumber !== undefined ? source.pageNumber : source.PageNumber;
+            const sContent = source.content || source.Content || '';
+            document.getElementById('popoverIndex').textContent = sIdx;
+            document.getElementById('popoverFileName').textContent = sFileName;
+            document.getElementById('popoverPageNumber').textContent = sPageNumber ? `Trang ${sPageNumber}` : 'Tài liệu';
+            document.getElementById('popoverContent').textContent = sContent;
             popover.classList.remove('hidden');
             const rect = element.getBoundingClientRect();
             const popoverRect = popover.getBoundingClientRect();
@@ -356,7 +366,13 @@
             sourceEmptyEl.classList.add('hidden');
             sourceCountEl.textContent = currentSources.length;
             currentSources.forEach(s => {
-                const ext = (s.fileName.split('.').pop() || '').toLowerCase();
+                const sIdx = s.index !== undefined ? s.index : s.Index;
+                const sFileName = s.fileName || s.FileName || 'Tài liệu';
+                const sPageNumber = s.pageNumber !== undefined ? s.pageNumber : s.PageNumber;
+                const sContent = s.content || s.Content || '';
+                const sDocumentId = s.documentId || s.DocumentId || '';
+
+                const ext = (sFileName.split('.').pop() || '').toLowerCase();
                 const icon = ext === 'pdf' ? 'picture_as_pdf'
                     : (ext === 'docx' || ext === 'doc') ? 'description'
                     : (ext === 'pptx' || ext === 'ppt') ? 'slideshow'
@@ -365,18 +381,24 @@
                 el.type = 'button';
                 el.className = 'w-full text-left flex items-start gap-2 rounded-lg p-2 bg-surface/40 hover:bg-surface border border-outline-variant/20 hover:border-outline-variant/40 transition-colors cursor-pointer';
                 el.innerHTML = `
-                    <span class="w-5 h-5 mt-0.5 flex items-center justify-center text-[10px] font-bold rounded-full bg-primary text-on-primary flex-shrink-0">${s.index}</span>
+                    <span class="w-5 h-5 mt-0.5 flex items-center justify-center text-[10px] font-bold rounded-full bg-primary text-on-primary flex-shrink-0">${sIdx}</span>
                     <div class="min-w-0 flex-1">
                         <div class="flex items-center gap-1.5">
                             <span class="material-symbols-outlined text-[14px] text-on-surface-variant">${icon}</span>
-                            <span class="text-[11px] font-semibold text-on-surface truncate" title="${escapeHtml(s.fileName)}">${escapeHtml(s.fileName)}</span>
+                            <span class="text-[11px] font-semibold text-on-surface truncate" title="${escapeHtml(sFileName)}">${escapeHtml(sFileName)}</span>
                         </div>
-                        ${s.pageNumber ? `<p class="text-[10px] text-outline mt-0.5">Trang ${s.pageNumber}</p>` : `<p class="text-[10px] text-outline mt-0.5">Bấm để mở tài liệu</p>`}
-                        <p class="text-[10px] text-on-surface-variant mt-1 line-clamp-2">${escapeHtml(s.content || '').slice(0, 160)}...</p>
+                        ${sPageNumber ? `<p class="text-[10px] text-outline mt-0.5">Trang ${sPageNumber}</p>` : `<p class="text-[10px] text-outline mt-0.5">Bấm để mở tài liệu</p>`}
+                        <p class="text-[10px] text-on-surface-variant mt-1 line-clamp-2">${escapeHtml(sContent).slice(0, 160)}...</p>
                     </div>
                     <span class="material-symbols-outlined text-[14px] text-outline">open_in_new</span>
                 `;
-                el.addEventListener('click', () => openSource(s));
+                el.addEventListener('click', () => openSource({
+                    index: sIdx,
+                    fileName: sFileName,
+                    pageNumber: sPageNumber,
+                    content: sContent,
+                    documentId: sDocumentId
+                }));
                 sourceListEl.appendChild(el);
             });
         }
@@ -398,6 +420,7 @@
             iframeViewer.classList.add('hidden');
             viewerFallback.classList.add('hidden');
             viewerLoading.classList.add('hidden');
+            document.getElementById('viewerQuote')?.classList.add('hidden');
         }
 
         function resetViewer() {
@@ -422,9 +445,16 @@
             const fileUrl = `/Document/ViewOriginal?id=${source.documentId}`;
             const unsupportedExts = ['docx', 'doc', 'pptx', 'ppt', 'xlsx', 'xls', 'zip', 'rar'];
             
+            if (source.content) {
+                document.getElementById('viewerQuoteText').textContent = source.content;
+                document.getElementById('viewerQuote').classList.remove('hidden');
+            } else {
+                document.getElementById('viewerQuote').classList.add('hidden');
+            }
+
             if (ext === 'pdf') {
                 try {
-                    await renderPdfPage(fileUrl, 1);
+                    await renderPdfPage(fileUrl, source.pageNumber || 1);
                     viewerLoading.classList.add('hidden');
                     pdfCanvas.classList.remove('hidden');
                 } catch (err) {
@@ -473,33 +503,14 @@
         }
 
         // Session management
-        let currentSessionId = @(Model.SessionId.HasValue ? $"'{Model.SessionId.Value}'" : "null");
+        let currentSessionId = @Html.Raw(Model.SessionId.HasValue ? $"'{Model.SessionId.Value}'" : "null");
 
         function startNewSession() {
-            currentSessionId = null;
-            chatMessages.innerHTML = `
-                <div class="flex flex-col items-start w-full gap-1">
-                    <div class="flex items-center gap-2 px-1 select-none">
-                        <span class="material-symbols-outlined text-tertiary text-[16px] filled">smart_toy</span>
-                        <span class="font-bold text-on-surface-variant text-[10px] uppercase tracking-wider">Trợ lý Học tập AI</span>
-                    </div>
-                    <div class="bg-surface text-on-surface text-sm px-4 py-3 rounded-2xl rounded-tl-sm max-w-[90%] border border-outline-variant shadow-sm leading-relaxed">
-                        <p>Xin chào! Tôi sẵn sàng trả lời câu hỏi mới của bạn.</p>
-                    </div>
-                </div>`;
-            currentSources = [];
-            renderSources([]);
-            closeViewer();
-            switchLeftTab('docs');
-            document.querySelectorAll('.session-item').forEach(el => el.classList.remove('bg-primary/10', 'border-primary/40'));
-            document.querySelectorAll('.session-item').forEach(el => {
-                el.classList.add('bg-surface/40');
-                el.querySelector('.material-symbols-outlined')?.classList.replace('text-primary', 'text-outline');
-            });
+            window.location.href = `/Subject/Chat/${subjectId}`;
         }
 
         function loadSession(id) {
-            window.location.href = `?subjectId=${subjectId}&sessionId=${id}`;
+            window.location.href = `/Subject/Chat/${subjectId}/${id}`;
         }
 
         async function deleteSession(id) {
@@ -525,6 +536,45 @@
             }
         }
 
+        async function renameSession(id, oldTitle) {
+            const newTitle = prompt('Nhập tên mới cho cuộc trò chuyện:', oldTitle);
+            if (newTitle === null) return;
+            const trimmed = newTitle.trim();
+            if (!trimmed) { showNotification('Tên không được để trống.', 'warning'); return; }
+
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            try {
+                const fd = new FormData();
+                fd.append('sessionId', id);
+                fd.append('title', trimmed);
+                const r = await fetch('?handler=RenameSession', {
+                    method: 'POST',
+                    body: fd,
+                    headers: { 'RequestVerificationToken': token }
+                });
+                const j = await r.json();
+                if (j.success) {
+                    const item = document.querySelector(`.session-item[data-session-id="${id}"]`);
+                    if (item) {
+                        const titleEl = item.querySelector('p.text-on-surface');
+                        if (titleEl) {
+                            titleEl.textContent = trimmed;
+                            titleEl.title = trimmed;
+                        }
+                        const editBtn = item.querySelector('button[title="Đổi tên"]');
+                        if (editBtn) {
+                            editBtn.setAttribute('onclick', `event.stopPropagation(); renameSession('${id}', '${trimmed.replace(/'/g, "\\'")}')`);
+                        }
+                    }
+                    showNotification('Đổi tên cuộc trò chuyện thành công.', 'success');
+                } else {
+                    showNotification(j.message || 'Lỗi đổi tên', 'error');
+                }
+            } catch (e) {
+                showNotification('Lỗi: ' + e.message, 'error');
+            }
+        }
+
         // Initial messages
         @{
             var camelCaseOptions = new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase };
@@ -535,15 +585,22 @@
         }
         @if (Model.InitialMessages.Any())
         {
-            <text>chatMessages.innerHTML = '';
+            @:chatMessages.innerHTML = '';
             @foreach (var m in Model.InitialMessages)
             {
-                <text>appendMessage(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(m.Content)), '@(m.Role == "assistant" ? "ai" : "user")', @(m.Sources != null ? Html.Raw(System.Text.Json.JsonSerializer.Serialize(m.Sources, camelCaseOptions)) : "[]"));</text>
+                @:try {
+                @:    appendMessage(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(m.Content)), '@(m.Role == "assistant" ? "ai" : "user")', @Html.Raw(m.Sources != null ? System.Text.Json.JsonSerializer.Serialize(m.Sources, camelCaseOptions) : "[]"));
+                @:} catch (e) {
+                @:    console.error("Error rendering historical message:", e);
+                @:}
             }
-            renderSources(@Html.Raw(lastAssistantSourcesJson));
-            scrollToBottom();
-            switchLeftTab('sessions');
-            </text>
+            @:try {
+            @:    renderSources(@Html.Raw(lastAssistantSourcesJson));
+            @:} catch (e) {
+            @:    console.error("Error rendering historical sources:", e);
+            @:}
+            @:scrollToBottom();
+            @:switchLeftTab('sessions');
         }
 
         // Submit chat
@@ -581,10 +638,10 @@
                     appendMessage(data.reply, 'ai', data.sources);
                     renderSources(data.sources);
                     if (data.sessionId && !document.querySelector(`.session-item[data-session-id="${data.sessionId}"]`)) {
-                        history.pushState(null, '', '?subjectId=' + subjectId + '&sessionId=' + data.sessionId);
+                        history.pushState(null, '', '/Subject/Chat/' + subjectId + '/' + data.sessionId);
                         const noSession = document.querySelector('#sessionsList > div.text-center');
                         if (noSession) noSession.remove();
-                        const html = `<div class="session-item group flex items-center gap-2 rounded-lg p-2 border border-primary/40 bg-primary/10 hover:border-primary/50 hover:bg-surface transition-colors cursor-pointer" data-session-id="${data.sessionId}" onclick="loadSession('${data.sessionId}')"><span class="material-symbols-outlined text-[16px] text-primary flex-shrink-0">chat</span><div class="min-w-0 flex-1"><p class="text-[11px] font-semibold text-on-surface truncate" title="Cuộc trò chuyện mới">Cuộc trò chuyện mới</p><p class="text-[9px] text-outline">Vừa xong</p></div><button type="button" onclick="event.stopPropagation(); deleteSession('${data.sessionId}')" class="opacity-0 group-hover:opacity-100 p-1 text-outline hover:text-error transition-all" title="Xóa"><span class="material-symbols-outlined text-[14px]">delete</span></button></div>`;
+                        const html = `<div class="session-item group flex items-center gap-2 rounded-lg p-2 border border-primary/40 bg-primary/10 hover:border-primary/50 hover:bg-surface transition-colors cursor-pointer" data-session-id="${data.sessionId}" onclick="loadSession('${data.sessionId}')"><span class="material-symbols-outlined text-[16px] text-primary flex-shrink-0">chat</span><div class="min-w-0 flex-1"><p class="text-[11px] font-semibold text-on-surface truncate" title="Cuộc trò chuyện mới">Cuộc trò chuyện mới</p><p class="text-[9px] text-outline">Vừa xong</p></div><button type="button" onclick="event.stopPropagation(); renameSession('${data.sessionId}', 'Cuộc trò chuyện mới')" class="opacity-0 group-hover:opacity-100 p-1 text-outline hover:text-primary transition-all" title="Đổi tên"><span class="material-symbols-outlined text-[14px]">edit</span></button><button type="button" onclick="event.stopPropagation(); deleteSession('${data.sessionId}')" class="opacity-0 group-hover:opacity-100 p-1 text-outline hover:text-error transition-all" title="Xóa"><span class="material-symbols-outlined text-[14px]">delete</span></button></div>`;
                         document.getElementById('sessionsList').insertAdjacentHTML('afterbegin', html);
                     }
                 } else {
@@ -605,10 +662,10 @@
             const messageWrapper = document.createElement('div');
             messageWrapper.classList.add('flex', 'flex-col', sender === 'user' ? 'items-end' : 'items-start', 'w-full', 'gap-1');
             if (sender === 'ai') {
-                let html = marked.parse(text);
+                let html = (window.marked && typeof marked.parse === 'function') ? String(marked.parse(text)) : (window.marked ? String(marked(text)) : String(text));
                 html = html.replace(/\[(\d+)\]/g, (match, number) => {
                     const idx = parseInt(number);
-                    const sourceExists = sources && sources.some(s => s.index === idx);
+                    const sourceExists = sources && sources.some(s => (s.index !== undefined ? s.index : s.Index) === idx);
                     if (sourceExists) {
                         return `<button type="button" class="citation-badge inline-flex items-center justify-center w-5 h-5 ml-1 mr-0.5 text-[9px] font-bold rounded-full bg-primary/15 text-primary hover:bg-primary/25 border border-primary/20 cursor-pointer select-none transition-all align-middle" style="margin-top: -3px;" data-index="${idx}">${idx}</button>`;
                     }
@@ -641,7 +698,10 @@
             }
         }
 
-        function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+        function escapeHtml(s) { 
+            if (s === null || s === undefined) return '';
+            return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); 
+        }
 
         function appendTypingIndicator() {
             const id = 'typing-' + Date.now();

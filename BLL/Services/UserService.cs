@@ -62,8 +62,8 @@ namespace BLL.Services
             }
             else if (dto.Role == UserRole.Student)
             {
-                if (!normalizedCode.StartsWith("STU", StringComparison.Ordinal))
-                    return Result<User>.Failure("Mã sinh viên phải bắt đầu bằng 'STU' (VD: STU123456).");
+                if (!normalizedCode.StartsWith("HE", StringComparison.Ordinal) && !normalizedCode.StartsWith("STU", StringComparison.Ordinal))
+                    return Result<User>.Failure("Mã sinh viên phải bắt đầu bằng 'HE' hoặc 'STU' (VD: HE170123).");
             }
             else if (dto.Role == UserRole.Admin)
             {
@@ -118,18 +118,14 @@ namespace BLL.Services
             return Result<User>.Success(newUser);
         }
 
-        public async Task<Result> ResetPasswordAsync(Guid id, string newPassword)
+        public async Task<Result<string>> ResetPasswordAsync(Guid id)
         {
             var user = await _userRepository.GetByIdAsync(id);
-            if (user == null) return Result.Failure("Không tìm thấy người dùng.");
+            if (user == null) return Result<string>.Failure("Không tìm thấy người dùng.");
 
-            if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)
-            {
-                return Result.Failure("Mật khẩu phải có ít nhất 6 ký tự.");
-            }
-
+            var newPassword = GenerateRandomPassword();
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
-            user.Status = UserStatus.Active;
+            user.Status = UserStatus.Inactive; // force password change on next login
             user.UpdatedAt = DateTime.UtcNow;
             await _userRepository.UpdateAsync(user);
 
@@ -149,7 +145,7 @@ namespace BLL.Services
                 _logger.LogWarning(ex, "Failed to send password-reset notification for user {UserCode}.", user.UserCode);
             }
 
-            return Result.Success();
+            return Result<string>.Success(newPassword);
         }
 
         private string DecryptEmailInternal(string encryptedEmailBase64)

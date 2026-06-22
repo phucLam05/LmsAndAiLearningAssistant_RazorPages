@@ -10,5 +10,6 @@ namespace DAL.Interfaces
         Task<ChatMessage> AddAsync(ChatMessage message);
         Task<IReadOnlyList<ChatMessage>> GetBySessionIdAsync(Guid sessionId);
         Task<int> CountAllAsync();
+        Task<long> GetTotalTokensAsync();
     }
 }
