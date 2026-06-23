@@ -14,7 +14,7 @@ namespace BLL
             services.AddScoped<IDocumentService, DocumentService>();
             services.AddScoped<IEmbeddingService, DocumentEmbeddingService>();
             services.AddScoped<ISubjectService, SubjectService>();
-            services.AddHttpClient<IChatService, ChatService>();
+            services.AddScoped<IChatService, ChatService>();
             services.AddScoped<IAdminService, AdminService>();
             services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<IUserService, UserService>();

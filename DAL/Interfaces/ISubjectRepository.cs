@@ -37,5 +37,12 @@ namespace DAL.Interfaces
         /// (used for update validation to avoid false positives on self-check).
         /// </summary>
         Task<bool> ExistsAsync(string subjectCode, Guid? excludeId = null);
+
+        Task<(IReadOnlyList<Subject> Items, int TotalCount)> GetPagedAsync(
+            string? search, Core.Entities.SubjectStatus? status, int pageIndex, int pageSize);
+        Task<(IReadOnlyList<Subject> Items, int TotalCount)> GetPagedByLecturerAsync(
+            Guid lecturerId, string? search, int pageIndex, int pageSize);
+        Task<(IReadOnlyList<Subject> Items, int TotalCount)> GetPagedActiveAsync(
+            string? search, int pageIndex, int pageSize);
     }
 }

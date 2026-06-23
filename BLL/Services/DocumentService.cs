@@ -298,8 +298,25 @@ namespace BLL.Services
         public async Task<IReadOnlyList<DocumentDto>> GetAllDocumentsAsync()
         {
             var documents = await _documentRepository.GetAllWithDetailsAsync();
-
             return documents.Select(MapDocument).ToList();
+        }
+
+        public async Task<PagedResult<DocumentDto>> GetPagedDocumentsAsync(
+            string? search, string? status, Guid? subjectId, int pageIndex, int pageSize)
+        {
+            var statusEnum = !string.IsNullOrWhiteSpace(status) && Enum.TryParse<DocumentStatus>(status, true, out var s)
+                ? s : (DocumentStatus?)null;
+
+            var total = await _documentRepository.CountAsync(search, statusEnum, subjectId);
+            var docs = await _documentRepository.QueryAsync(search, statusEnum, subjectId, pageIndex, pageSize);
+
+            return new PagedResult<DocumentDto>
+            {
+                Items = docs.Select(MapDocument).ToList(),
+                TotalCount = total,
+                PageIndex = pageIndex,
+                PageSize = pageSize
+            };
         }
 
         private string ValidateUpload(DocumentUploadDto uploadDto)

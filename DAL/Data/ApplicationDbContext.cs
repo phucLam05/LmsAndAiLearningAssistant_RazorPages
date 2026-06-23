@@ -13,6 +13,8 @@ namespace DAL.Data
         public DbSet<Subject> Subjects { get; set; }
         public DbSet<Document> Documents { get; set; }
         public DbSet<DocumentChunk> DocumentChunks { get; set; }
+        public DbSet<ChatSession> ChatSessions { get; set; }
+        public DbSet<ChatMessage> ChatMessages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -138,6 +140,53 @@ namespace DAL.Data
                 entity.HasOne(e => e.Subject)
                     .WithMany(s => s.DocumentChunks)
                     .HasForeignKey(e => e.SubjectId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ChatSession configuration
+            modelBuilder.Entity<ChatSession>(entity =>
+            {
+                entity.ToTable("chat_sessions");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()");
+                entity.Property(e => e.UserId).HasColumnName("user_id").IsRequired();
+                entity.Property(e => e.SubjectId).HasColumnName("subject_id");
+                entity.Property(e => e.Title).HasColumnName("title").HasMaxLength(500).HasDefaultValue("");
+                entity.Property(e => e.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.UpdatedAt).HasColumnName("updated_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.HasIndex(e => new { e.UserId, e.SubjectId });
+
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Subject)
+                    .WithMany()
+                    .HasForeignKey(e => e.SubjectId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            // ChatMessage configuration
+            modelBuilder.Entity<ChatMessage>(entity =>
+            {
+                entity.ToTable("chat_messages");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()");
+                entity.Property(e => e.SessionId).HasColumnName("session_id").IsRequired();
+                entity.Property(e => e.Role).HasColumnName("role").HasMaxLength(20).IsRequired();
+                entity.Property(e => e.Content).HasColumnName("content").HasColumnType("text").IsRequired();
+                entity.Property(e => e.SourcesJson).HasColumnName("sources_json").HasColumnType("text");
+                entity.Property(e => e.PromptTokens).HasColumnName("prompt_tokens");
+                entity.Property(e => e.CompletionTokens).HasColumnName("completion_tokens");
+                entity.Property(e => e.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.HasIndex(e => e.SessionId);
+
+                entity.HasOne(e => e.Session)
+                    .WithMany(s => s.Messages)
+                    .HasForeignKey(e => e.SessionId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
         }

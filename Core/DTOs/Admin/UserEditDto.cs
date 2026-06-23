@@ -18,5 +18,8 @@ namespace Core.DTOs.Admin
 
         [Required]
         public UserStatus Status { get; set; }
+
+        /// <summary>User code (student or lecturer ID). Optional — null means no change.</summary>
+        public string? UserCode { get; set; }
     }
 }

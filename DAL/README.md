@@ -7,7 +7,7 @@ The `DAL` project handles all interactions with the database and external infras
 - **`Data/`**: Contains the Entity Framework Core database context configuration and interceptors (e.g., automatically updating timestamps).
 - **`Repositories/`**: Contains the concrete implementations of the data access interfaces to perform CRUD operations on the database.
 - **`Interfaces/`**: Defines the data access contracts that the `BLL` will depend on.
-- **`Providers/`**: Contains client classes to communicate with external services, such as Supabase Storage (for files) and the Gemini API (for vector embeddings).
+- **`Providers/`**: Contains client classes to communicate with external services and APIs, such as Supabase Storage (files), Gemini API (vector embeddings and text generation), and SMTP Server (sending emails).
 - **`Migrations/`**: Stores the EF Core migration history files.
 
 ## Architectural Rule

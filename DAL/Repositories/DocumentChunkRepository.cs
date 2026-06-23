@@ -73,7 +73,7 @@ namespace DAL.Repositories
             return await _context.DocumentChunks.AnyAsync(c => c.DocumentId == documentId);
         }
 
-        public async Task<IReadOnlyList<(string Content, string FileName)>> SearchSimilarChunksAsync(
+        public async Task<IReadOnlyList<DocumentChunk>> SearchSimilarChunksAsync(
             Guid subjectId,
             Vector queryEmbedding,
             int limit,
@@ -88,14 +88,11 @@ namespace DAL.Repositories
                 query = query.Where(c => c.DocumentId != null && documentIds.Contains(c.DocumentId!.Value));
             }
 
-            var results = await query
+            return await query
                 .OrderBy(c => c.Embedding!.CosineDistance(queryEmbedding))
                 .Take(limit)
                 .Include(c => c.Document)
-                .Select(c => new { c.Content, FileName = c.Document != null ? c.Document.FileName : "Unknown Document" })
                 .ToListAsync(cancellationToken);
-
-            return results.Select(r => (r.Content, r.FileName)).ToList();
         }
 
         public async Task<int> CountAllAsync()

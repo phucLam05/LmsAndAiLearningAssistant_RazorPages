@@ -1,35 +1,39 @@
-@page
+﻿@page
 @model PL.Pages.Auth.RegisterModel
 @{
-    ViewData["Title"] = "Register";
+    ViewData["Title"] = "Đăng ký tài khoản";
 }
 
-<h1>Register</h1>
+<div class="bg-surface-container-high/60 backdrop-blur-md border border-outline-variant/40 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
+    <div class="flex flex-col items-center text-center mb-6">
+        <div class="w-14 h-14 bg-primary/15 border border-primary/35 rounded-full flex items-center justify-center mb-3">
+            <span class="material-symbols-outlined text-[28px] text-primary">admin_panel_settings</span>
+        </div>
+        <h3 class="text-headline-md font-bold text-on-surface" style="font-size: 22px;">Đăng ký do Admin quản lý</h3>
+        <p class="text-sm text-on-surface-variant mt-2 max-w-[320px]">
+            Hệ thống không cho phép tự đăng ký tài khoản. Vui lòng liên hệ Quản trị viên để được cấp tài khoản Sinh viên hoặc Giảng viên.
+        </p>
+    </div>
 
-@if (!string.IsNullOrEmpty(Model.ErrorMessage))
-{
-    <div class="alert alert-danger">@Model.ErrorMessage</div>
-}
-@if (!string.IsNullOrEmpty(Model.SuccessMessage))
-{
-    <div class="alert alert-success">@Model.SuccessMessage</div>
-}
+    <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-4 text-xs text-on-surface-variant space-y-2">
+        <div class="flex items-start gap-2">
+            <span class="material-symbols-outlined text-[18px] text-primary">mail</span>
+            <div>
+                <strong class="text-on-surface">Email thông báo tự động</strong>
+                <p>Khi Admin tạo tài khoản, một email kèm mật khẩu tạm sẽ được gửi về địa chỉ của bạn. Bạn sẽ được yêu cầu đổi mật khẩu ở lần đăng nhập đầu tiên.</p>
+            </div>
+        </div>
+        <div class="flex items-start gap-2">
+            <span class="material-symbols-outlined text-[18px] text-primary">key</span>
+            <div>
+                <strong class="text-on-surface">Đổi mật khẩu bắt buộc</strong>
+                <p>Mọi tài khoản mới đều phải đổi mật khẩu ngay khi đăng nhập lần đầu để kích hoạt.</p>
+            </div>
+        </div>
+    </div>
 
-<form method="post">
-    <div class="form-group mb-3">
-        <label asp-for="Input.FullName"></label>
-        <input asp-for="Input.FullName" class="form-control" />
-        <span asp-validation-for="Input.FullName" class="text-danger"></span>
-    </div>
-    <div class="form-group mb-3">
-        <label asp-for="Input.Email"></label>
-        <input asp-for="Input.Email" class="form-control" />
-        <span asp-validation-for="Input.Email" class="text-danger"></span>
-    </div>
-    <div class="form-group mb-3">
-        <label asp-for="Input.Password"></label>
-        <input asp-for="Input.Password" type="password" class="form-control" />
-        <span asp-validation-for="Input.Password" class="text-danger"></span>
-    </div>
-    <button type="submit" class="btn btn-primary">Register</button>
-</form>
+    <a asp-page="/Auth/Login" class="w-full mt-6 bg-primary hover:bg-primary/95 text-on-primary font-bold py-3 px-4 rounded-xl shadow-lg transition-all duration-200 flex items-center justify-center gap-2 hover:scale-[1.01]">
+        <span class="material-symbols-outlined text-[18px]">login</span>
+        <span>Đi đến trang đăng nhập</span>
+    </a>
+</div>

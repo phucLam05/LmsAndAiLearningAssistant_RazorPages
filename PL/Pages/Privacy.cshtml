@@ -1,8 +1,16 @@
 ﻿@page
 @model PrivacyModel
 @{
-    ViewData["Title"] = "Privacy Policy";
+    ViewData["Title"] = "Chính sách bảo mật";
 }
-<h1>@ViewData["Title"]</h1>
 
-<p>Use this page to detail your site's privacy policy.</p>
+<div class="surface-card" style="max-width: 720px;">
+    <h1 class="fw-bold mb-3" style="letter-spacing:-0.02em;">@ViewData["Title"]</h1>
+    <p class="text-on-surface-variant">
+        Hệ thống LMS AI Learning Assistant lưu trữ email đã được mã hóa và băm SHA-256 để bảo vệ danh tính người dùng.
+        Mật khẩu được lưu dưới dạng BCrypt hash — không lưu plaintext.
+    </p>
+    <p class="text-on-surface-variant mb-0">
+        Mọi truy vấn AI chỉ dựa trên tài liệu đã được upload bởi giảng viên môn học tương ứng.
+    </p>
+</div>

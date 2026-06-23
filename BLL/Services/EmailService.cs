@@ -1,9 +1,7 @@
 using BLL.Interfaces;
-using Microsoft.Extensions.Configuration;
+using DAL.Interfaces;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Net;
-using System.Net.Mail;
 using System.Threading.Tasks;
 
 namespace BLL.Services
@@ -13,23 +11,13 @@ namespace BLL.Services
     /// </summary>
     public class EmailService : IEmailService
     {
+        private readonly IEmailSenderProvider _emailSenderProvider;
         private readonly ILogger<EmailService> _logger;
-        private readonly string _host;
-        private readonly int _port;
-        private readonly string _username;
-        private readonly string _password;
-        private readonly bool _enableSsl;
-        private readonly string _fromAddress;
 
-        public EmailService(IConfiguration configuration, ILogger<EmailService> logger)
+        public EmailService(IEmailSenderProvider emailSenderProvider, ILogger<EmailService> logger)
         {
+            _emailSenderProvider = emailSenderProvider;
             _logger = logger;
-            _host = configuration["SmtpSettings:Host"] ?? string.Empty;
-            _port = int.TryParse(configuration["SmtpSettings:Port"], out var port) ? port : 587;
-            _username = configuration["SmtpSettings:Username"] ?? string.Empty;
-            _password = configuration["SmtpSettings:Password"] ?? string.Empty;
-            _enableSsl = bool.TryParse(configuration["SmtpSettings:EnableSsl"], out var ssl) && ssl;
-            _fromAddress = configuration["SmtpSettings:FromAddress"] ?? "no-reply@lmsai.com";
         }
 
         public async Task SendFirstTimeLoginEmailAsync(string email, string fullName, string userCode, string temporaryPassword)
@@ -54,36 +42,37 @@ Best regards,
 LMS AI Team
 ";
 
-            if (string.IsNullOrWhiteSpace(_host))
-            {
-                // Print to console and log so developers can find credentials locally without a mail server
-                _logger.LogWarning("SMTP Host is not configured. Fallback details generated for {Email}: UserCode: {UserCode}, TempPassword: {Password}", email, userCode, temporaryPassword);
-                Console.WriteLine("\n==================================================");
-                Console.WriteLine($"[EMAIL FALLBACK] Sent to: {email}");
-                Console.WriteLine($"User Code: {userCode}");
-                Console.WriteLine($"Temporary Password: {temporaryPassword}");
-                Console.WriteLine("==================================================\n");
-                return;
-            }
-
             try
             {
-                using var mailMessage = new MailMessage(_fromAddress, email, subject, body);
-                using var smtpClient = new SmtpClient(_host, _port);
-                
-                if (!string.IsNullOrWhiteSpace(_username))
-                {
-                    smtpClient.Credentials = new NetworkCredential(_username, _password);
-                }
-                
-                smtpClient.EnableSsl = _enableSsl;
-                await smtpClient.SendMailAsync(mailMessage);
-                _logger.LogInformation("Account setup notification successfully sent to {Email}", email);
+                await _emailSenderProvider.SendEmailAsync(email, subject, body);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to send email to {Email}. Logging fallback credentials to console.", email);
-                Console.WriteLine($"[EMAIL SEND ERROR] Fallback details for {email}: UserCode={userCode}, TempPassword={temporaryPassword}");
+                _logger.LogError(ex, "Failed to send account setup email to {Email}", email);
+            }
+        }
+
+        public async Task SendPasswordResetNotificationAsync(string email, string fullName, string newPassword)
+        {
+            var subject = "LMS AI - Mật khẩu của bạn đã được đặt lại";
+            var body = $@"Xin chào {fullName},
+
+Mật khẩu tài khoản LMS AI của bạn vừa được quản trị viên đặt lại.
+
+Mật khẩu mới: {newPassword}
+
+Vui lòng đăng nhập và đổi sang mật khẩu cá nhân ngay lập tức.
+
+Trân trọng,
+Đội ngũ LMS AI";
+
+            try
+            {
+                await _emailSenderProvider.SendEmailAsync(email, subject, body);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send password-reset notification to {Email}", email);
             }
         }
     }

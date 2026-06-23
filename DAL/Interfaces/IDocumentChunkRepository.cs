@@ -39,9 +39,10 @@ namespace DAL.Interfaces
 
         /// <summary>
         /// Performs a cosine similarity search for chunks within a subject, optionally filtered by document IDs.
-        /// Returns the top <paramref name="limit"/> most similar chunks along with their source document file name.
+        /// Returns the top <paramref name="limit"/> most similar chunks as full <see cref="DocumentChunk"/>
+        /// entities (with the parent <see cref="Core.Entities.Document"/> included for source display).
         /// </summary>
-        Task<IReadOnlyList<(string Content, string FileName)>> SearchSimilarChunksAsync(
+        Task<IReadOnlyList<DocumentChunk>> SearchSimilarChunksAsync(
             Guid subjectId,
             Vector queryEmbedding,
             int limit,

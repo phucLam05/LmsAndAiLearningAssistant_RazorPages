@@ -1,4 +1,5 @@
 using BLL.Interfaces;
+using Core.DTOs.Common;
 using Core.DTOs.Subject;
 using Core.Entities;
 using DAL.Interfaces;
@@ -114,6 +115,38 @@ namespace BLL.Services
         {
             var subjects = await _subjectRepo.GetActiveAsync();
             return subjects.Select(MapToDto);
+        }
+
+        public async Task<PagedResult<SubjectDto>> GetPagedAllSubjectsAsync(string? search, string? status, int pageIndex, int pageSize)
+        {
+            var statusEnum = !string.IsNullOrWhiteSpace(status) && Enum.TryParse<SubjectStatus>(status, true, out var s)
+                ? s : (SubjectStatus?)null;
+            var (items, total) = await _subjectRepo.GetPagedAsync(search, statusEnum, pageIndex, pageSize);
+            return new PagedResult<SubjectDto>
+            {
+                Items = items.Select(MapToDto).ToList(),
+                TotalCount = total, PageIndex = pageIndex, PageSize = pageSize
+            };
+        }
+
+        public async Task<PagedResult<SubjectDto>> GetPagedSubjectsByLecturerAsync(Guid lecturerId, string? search, int pageIndex, int pageSize)
+        {
+            var (items, total) = await _subjectRepo.GetPagedByLecturerAsync(lecturerId, search, pageIndex, pageSize);
+            return new PagedResult<SubjectDto>
+            {
+                Items = items.Select(MapToDto).ToList(),
+                TotalCount = total, PageIndex = pageIndex, PageSize = pageSize
+            };
+        }
+
+        public async Task<PagedResult<SubjectDto>> GetPagedActiveSubjectsAsync(string? search, int pageIndex, int pageSize)
+        {
+            var (items, total) = await _subjectRepo.GetPagedActiveAsync(search, pageIndex, pageSize);
+            return new PagedResult<SubjectDto>
+            {
+                Items = items.Select(MapToDto).ToList(),
+                TotalCount = total, PageIndex = pageIndex, PageSize = pageSize
+            };
         }
 
         // ── HELPERS ──────────────────────────────────────────────────────────────
