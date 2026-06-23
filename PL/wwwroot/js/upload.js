@@ -117,6 +117,7 @@
             const fd = new FormData();
             fd.append(opts.fieldName || 'file', opts.file);
             if (opts.subjectId) fd.append('subjectId', opts.subjectId);
+            if (opts.token) fd.append('__RequestVerificationToken', opts.token);
             if (opts.extra) {
                 for (const k in opts.extra) fd.append(k, opts.extra[k]);
             }
@@ -130,13 +131,17 @@
             });
             xhr.onload = () => {
                 let success = false, message = '', status = 'Failed';
-                try {
-                    const j = JSON.parse(xhr.responseText);
-                    success = !!j.success;
-                    message = j.message || '';
-                    status = j.status || (success ? 'Success' : 'Failed');
-                } catch {
-                    message = xhr.responseText;
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    try {
+                        const j = JSON.parse(xhr.responseText);
+                        success = !!j.success;
+                        message = j.message || '';
+                        status = j.status || (success ? 'Success' : 'Failed');
+                    } catch {
+                        message = 'Phản hồi không hợp lệ';
+                    }
+                } else {
+                    message = `Lỗi server (${xhr.status})`;
                 }
                 resolve({ success, message, status, raw: xhr.responseText, httpStatus: xhr.status });
             };
@@ -238,10 +243,31 @@
             if (fi2) fi2.disabled = false;
             const dz2 = card.querySelector('[id$="Dropzone"],[id$="dropzone"],[id$="DropZone"]');
             if (dz2) dz2.style.pointerEvents = '';
-            setTimeout(() => {
-                if (typeof opts.onAllDone === 'function') opts.onAllDone({ successCount, failCount });
-                else location.reload();
-            }, 1200);
+
+            const overlay = card.querySelector('.upload-overlay');
+            if (overlay) {
+                // Stop spinner
+                const spinner = overlay.querySelector('.animate-spin');
+                if (spinner) spinner.classList.remove('animate-spin', 'border-t-transparent');
+
+                if (failCount > 0) {
+                    const header = overlay.querySelector('.select-none');
+                    if (header) {
+                        header.innerHTML = `
+                            <div class="flex items-center gap-2">
+                                <span class="material-symbols-outlined text-error">error</span>
+                                <h4 class="font-bold text-on-surface text-sm">Tải lên hoàn tất với ${failCount} lỗi</h4>
+                            </div>
+                            <button type="button" class="bg-primary hover:bg-primary/95 text-on-primary font-bold text-xs px-3 py-1.5 rounded-lg shadow-sm transition-all" onclick="this.closest('.upload-overlay').remove(); location.reload();">Đóng</button>
+                        `;
+                    }
+                } else {
+                    setTimeout(() => {
+                        if (typeof opts.onAllDone === 'function') opts.onAllDone({ successCount, failCount });
+                        else location.reload();
+                    }, 1200);
+                }
+            }
         }
     }
 

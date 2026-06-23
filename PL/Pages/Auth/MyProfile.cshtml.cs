@@ -1,5 +1,7 @@
 using System.Security.Claims;
 using DAL.Interfaces;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -59,8 +61,10 @@ namespace PL.Pages.Auth
             user.UpdatedAt = DateTime.UtcNow;
             await _userRepository.UpdateAsync(user);
 
-            TempData["SuccessMessage"] = "Đổi mật khẩu thành công!";
-            return RedirectToPage();
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
+            TempData["SuccessMessage"] = "Đổi mật khẩu thành công! Vui lòng đăng nhập lại với mật khẩu mới.";
+            return RedirectToPage("/Auth/Login");
         }
 
         private async Task<IActionResult> ReloadPage(Guid userId)

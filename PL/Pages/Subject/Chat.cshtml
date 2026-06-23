@@ -9,7 +9,7 @@
     var userRoleClaim = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "Student";
     Enum.TryParse<UserRole>(userRoleClaim, out var uRole);
     string backAction = uRole == UserRole.Admin ? "/Subject/Index" :
-                        uRole == UserRole.Lecturer ? "/Lecturer/Portal" :
+                        uRole == UserRole.Lecturer ? "/Subject/MySubjects" :
                         "/Subject/Browse";
 }
 

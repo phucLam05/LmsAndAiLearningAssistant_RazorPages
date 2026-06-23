@@ -6,6 +6,12 @@
     ViewData["Title"] = Model.Subject.Name;
     var canUpload = Model.UserRole == UserRole.Lecturer && Model.Subject.LecturerId == Model.CurrentUserId;
     var canDelete = Model.UserRole == UserRole.Lecturer;
+    var backUrl = Model.UserRole switch
+    {
+        UserRole.Admin => "/Subject/Index",
+        UserRole.Lecturer => "/Subject/MySubjects",
+        _ => "/Subject/Browse"
+    };
 }
 
 @functions {
@@ -25,13 +31,16 @@
     }
 }
 
+@Html.AntiForgeryToken()
 <div class="max-w-6xl mx-auto space-y-6 select-none">
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-            <a asp-page="/Subject/Index" class="inline-flex items-center gap-1 text-on-surface-variant hover:text-on-surface text-xs font-semibold mb-2">
+            <a href="@backUrl" class="inline-flex items-center gap-1 text-on-surface-variant hover:text-on-surface text-xs font-semibold mb-2 block w-fit">
                 <span class="material-symbols-outlined text-[16px]">arrow_back</span> Quay lại danh sách
             </a>
-            <span class="font-mono text-[10px] text-primary font-bold tracking-wider uppercase">@Model.Subject.SubjectCode</span>
+            <div class="mt-1">
+                <span class="font-mono text-[10px] text-primary font-bold tracking-wider uppercase bg-primary/10 px-2.5 py-0.5 rounded-lg border border-primary/20">@Model.Subject.SubjectCode</span>
+            </div>
             <h1 class="font-headline-lg text-headline-lg font-bold text-on-surface mt-1 tracking-tight">@Model.Subject.Name</h1>
             @if (!string.IsNullOrEmpty(Model.Subject.Description))
             {
@@ -54,8 +63,8 @@
                 <span class="material-symbols-outlined text-[48px] text-outline">cloud_upload</span>
                 <p class="text-sm text-on-surface-variant mt-2">Kéo thả một hoặc nhiều tệp vào đây hoặc <span class="text-primary font-bold">nhấn để chọn</span></p>
                 <p class="text-[10px] text-outline mt-1">PDF, DOCX, PPTX, TXT, MD — tối đa 50MB / tệp</p>
-                <input type="file" id="fileInput" multiple accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.md,.csv,.json,.xml,.rtf" class="hidden" />
             </div>
+            <input type="file" id="fileInput" multiple accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.md,.csv,.json,.xml,.rtf" class="hidden" />
         </div>
     }
 

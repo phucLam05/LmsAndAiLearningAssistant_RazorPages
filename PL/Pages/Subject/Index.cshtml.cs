@@ -38,26 +38,24 @@ namespace PL.Pages.Subject
         public async Task<IActionResult> OnGetAsync()
         {
             UserRole = GetUserRole();
+            if (UserRole == UserRole.Student)
+            {
+                return RedirectToPage("/Subject/Browse");
+            }
+            if (UserRole == UserRole.Lecturer)
+            {
+                return RedirectToPage("/Subject/MySubjects");
+            }
+
             if (PageIndex < 1) PageIndex = 1;
 
-            switch (UserRole)
+            if (UserRole == UserRole.Admin)
             {
-                case UserRole.Admin:
-                    Page = await _subjectService.GetPagedAllSubjectsAsync(Search, null, PageIndex, pageSize: 12);
-                    var users = await _adminService.GetAllUsersAsync();
-                    Lecturers = users.Where(u => u.Role == UserRole.Lecturer)
-                        .Select(u => new LecturerOption { Id = u.Id, FullName = u.FullName }).ToList();
-                    IsAdminMode = true;
-                    break;
-                case UserRole.Lecturer:
-                    var lectId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-                    Page = await _subjectService.GetPagedSubjectsByLecturerAsync(lectId, Search, PageIndex, pageSize: 12);
-                    IsAdminMode = false;
-                    break;
-                case UserRole.Student:
-                    Page = await _subjectService.GetPagedActiveSubjectsAsync(Search, PageIndex, pageSize: 12);
-                    IsAdminMode = false;
-                    break;
+                Page = await _subjectService.GetPagedAllSubjectsAsync(Search, null, PageIndex, pageSize: 12);
+                var users = await _adminService.GetAllUsersAsync();
+                Lecturers = users.Where(u => u.Role == UserRole.Lecturer)
+                    .Select(u => new LecturerOption { Id = u.Id, FullName = u.FullName }).ToList();
+                IsAdminMode = true;
             }
             return Page();
         }

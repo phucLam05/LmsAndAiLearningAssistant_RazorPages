@@ -76,29 +76,11 @@ namespace PL.Pages.Auth
             user.UpdatedAt = DateTime.UtcNow;
             await _userRepository.UpdateAsync(user);
 
-            // Re-issue cookie with a normal 7-day expiry now that the account is activated.
-            var role = User.FindFirstValue(ClaimTypes.Role) ?? user.Role.ToString();
-            var email = User.FindFirstValue(ClaimTypes.Email);
+            // Sign out the temporary session and redirect to Login
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            var claims = new List<Claim>
-            {
-                new(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new(ClaimTypes.Name, user.FullName),
-                new(ClaimTypes.Email, email ?? string.Empty),
-                new(ClaimTypes.Role, role)
-            };
-            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-            var props = new AuthenticationProperties { IsPersistent = true, ExpiresUtc = DateTimeOffset.UtcNow.AddDays(7) };
-            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity), props);
 
-            TempData["SuccessMessage"] = "Mật khẩu đã được cập nhật. Chào mừng bạn đến với LMS AI!";
-            return role switch
-            {
-                "Admin" => RedirectToPage("/Admin/Index"),
-                "Lecturer" => RedirectToPage("/Subject/MySubjects"),
-                "Student" => RedirectToPage("/Subject/Browse"),
-                _ => RedirectToPage("/Index")
-            };
+            TempData["SuccessMessage"] = "Mật khẩu đã được cập nhật thành công. Vui lòng đăng nhập lại với mật khẩu mới.";
+            return RedirectToPage("/Auth/Login");
         }
     }
 }

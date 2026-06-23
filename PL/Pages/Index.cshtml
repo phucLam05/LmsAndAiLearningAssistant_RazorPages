@@ -1,4 +1,4 @@
-﻿@page
+@page
 @model PL.Pages.IndexModel
 @{
     ViewData["Title"] = "Trang chủ";
@@ -28,8 +28,8 @@
                     }
                     else if (role == "Lecturer")
                     {
-                        <a class="inline-flex items-center gap-2 bg-primary text-on-primary hover:bg-primary-fixed hover:text-on-primary-fixed px-4 py-2.5 rounded-xl font-label-md text-xs font-bold transition-all shadow-md" asp-page="/Lecturer/Portal">
-                            <span class="material-symbols-outlined text-[16px]">database</span> Không gian Giảng viên
+                        <a class="inline-flex items-center gap-2 bg-primary text-on-primary hover:bg-primary-fixed hover:text-on-primary-fixed px-4 py-2.5 rounded-xl font-label-md text-xs font-bold transition-all shadow-md" asp-page="/Subject/MySubjects">
+                            <span class="material-symbols-outlined text-[16px]">database</span> Môn học của tôi
                         </a>
                     }
                     else

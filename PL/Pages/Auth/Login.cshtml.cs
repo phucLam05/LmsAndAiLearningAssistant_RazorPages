@@ -39,7 +39,7 @@ namespace PL.Pages.Auth
         {
             if (User.Identity?.IsAuthenticated == true)
             {
-                return RedirectByRole();
+                return RedirectByRole(User.FindFirstValue(ClaimTypes.Role));
             }
 
             if (!ModelState.IsValid)
@@ -52,7 +52,7 @@ namespace PL.Pages.Auth
 
             if (user == null)
             {
-                ModelState.AddModelError(string.Empty, "Invalid email or password.");
+                ModelState.AddModelError(string.Empty, "Sai thông tin đăng nhập. Vui lòng kiểm tra lại.");
                 return Page();
             }
 
@@ -93,12 +93,12 @@ namespace PL.Pages.Auth
                 return Redirect(ReturnUrl);
             }
 
-            return RedirectByRole();
+            return RedirectByRole(user.Role.ToString());
         }
 
-        private IActionResult RedirectByRole()
+        private IActionResult RedirectByRole(string? role = null)
         {
-            var role = User.FindFirstValue(ClaimTypes.Role);
+            role ??= User.FindFirstValue(ClaimTypes.Role);
             return role switch
             {
                 "Admin" => RedirectToPage("/Admin/Index"),
