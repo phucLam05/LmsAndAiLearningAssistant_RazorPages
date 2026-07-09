@@ -1,4 +1,4 @@
-﻿using Core.Entities;
+using Core.Entities;
 using DAL.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -152,5 +152,50 @@ namespace PL
 
             return Convert.ToBase64String(resultBytes);
         }
+
+        public static async Task SeedSubjectsAsync(IServiceProvider serviceProvider)
+        {
+            var dbContext = serviceProvider.GetRequiredService<ApplicationDbContext>();
+
+            var seedSubjects = new[]
+            {
+                new { SubjectCode = "PRN222", Name = "ASP.NET Core Web API", Description = "Lập trình ứng dụng web API với ASP.NET Core, Entity Framework Core và kiến trúc RESTful." },
+                new { SubjectCode = "PRJ301", Name = "Java Web Application", Description = "Phát triển ứng dụng web với Java Servlet, JSP, JSTL và các framework MVC." },
+                new { SubjectCode = "MAD101", Name = "Mobile Application Development", Description = "Lập trình ứng dụng di động đa nền tảng với Flutter/React Native." },
+                new { SubjectCode = "SWP391", Name = "Software Project", Description = "Dự án phần mềm theo nhóm: lập kế hoạch, phân tích yêu cầu, thiết kế và triển khai." },
+                new { SubjectCode = "SWD392", Name = "Software Architecture & Design", Description = "Kiến trúc phần mềm, Design Patterns, Microservices và phương pháp thiết kế hệ thống lớn." },
+                new { SubjectCode = "SEP490", Name = "Software Engineering Capstone", Description = "Đồ án tốt nghiệp chuyên ngành Kỹ thuật phần mềm — phát triển sản phẩm thực tế hoàn chỉnh." },
+                new { SubjectCode = "CSD203", Name = "Data Structures & Algorithms", Description = "Cấu trúc dữ liệu, giải thuật sắp xếp, tìm kiếm và phân tích độ phức tạp thuật toán." },
+                new { SubjectCode = "PRF192", Name = "Programming Fundamentals C", Description = "Lập trình cơ bản với ngôn ngữ C: kiểu dữ liệu, con trỏ, mảng, hàm và file I/O." },
+                new { SubjectCode = "IOT102", Name = "Internet of Things", Description = "Thiết kế và lập trình thiết bị IoT với Arduino, ESP32 và các giao thức MQTT, HTTP." },
+                new { SubjectCode = "MAS291", Name = "Statistics & Probability", Description = "Xác suất thống kê ứng dụng trong phân tích dữ liệu và kiểm định giả thuyết." },
+                new { SubjectCode = "SSG104", Name = "Communication & In-Group Working Skills", Description = "Kỹ năng giao tiếp, làm việc nhóm hiệu quả và kỹ năng thuyết trình chuyên nghiệp." },
+                new { SubjectCode = "MLN111", Name = "Introduction to Marxism-Leninism Philosophy", Description = "Triết học Mác-Lênin: vật chất, ý thức, phép biện chứng duy vật và nhận thức luận." },
+                new { SubjectCode = "OJT202", Name = "On-the-Job Training", Description = "Thực tập doanh nghiệp — áp dụng kiến thức chuyên ngành vào môi trường làm việc thực tế." },
+                new { SubjectCode = "NWC203", Name = "Computer Networks", Description = "Kiến trúc mạng máy tính, giao thức TCP/IP, mô hình OSI, bảo mật mạng và quản trị hệ thống." },
+                new { SubjectCode = "DBM302", Name = "Database Management Systems", Description = "Thiết kế cơ sở dữ liệu quan hệ, SQL nâng cao, tối ưu hóa truy vấn và quản trị DBMS." },
+            };
+
+            foreach (var s in seedSubjects)
+            {
+                var exists = await dbContext.Subjects.AnyAsync(x => x.SubjectCode == s.SubjectCode);
+                if (!exists)
+                {
+                    await dbContext.Subjects.AddAsync(new Subject
+                    {
+                        Id = Guid.NewGuid(),
+                        SubjectCode = s.SubjectCode,
+                        Name = s.Name,
+                        Description = s.Description,
+                        Status = SubjectStatus.Active,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow,
+                    });
+                }
+            }
+
+            await dbContext.SaveChangesAsync();
+        }
     }
 }
+

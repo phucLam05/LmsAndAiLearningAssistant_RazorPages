@@ -17,7 +17,7 @@
 
 <div class="space-y-8">
 
-    
+    <!-- Header -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 select-none">
         <div>
             <span class="bg-primary/10 text-primary border border-primary/20 px-2.5 py-0.5 rounded-lg text-xs font-mono font-bold tracking-tight">
@@ -46,7 +46,7 @@
         </div>
     </div>
 
-    
+    <!-- ── Headline stat cards ── -->
     <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 select-none">
         <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-5 relative overflow-hidden group">
             <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
@@ -86,7 +86,7 @@
         </div>
     </div>
 
-    
+    <!-- ── Quick stats row ── -->
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 select-none">
         <div class="bg-gradient-to-br from-primary/10 to-transparent border border-primary/25 rounded-xl p-4 flex items-center gap-3">
             <div class="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
@@ -97,36 +97,96 @@
                 <p class="text-xl font-bold text-on-surface">@Model.Stats.NewUsersLast7Days</p>
             </div>
         </div>
-        <div class="bg-gradient-to-br from-secondary/10 to-transparent border border-secondary/25 rounded-xl p-4 flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-secondary/15 flex items-center justify-center shrink-0">
-                <span class="material-symbols-outlined text-secondary text-[22px]">school</span>
-            </div>
-            <div>
-                <p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-wide">Sinh viên</p>
-                <p class="text-xl font-bold text-on-surface">@FormatNumber(Model.Stats.TotalStudents)</p>
-            </div>
-        </div>
         <div class="bg-gradient-to-br from-tertiary/10 to-transparent border border-tertiary/25 rounded-xl p-4 flex items-center gap-3">
             <div class="w-10 h-10 rounded-xl bg-tertiary/15 flex items-center justify-center shrink-0">
-                <span class="material-symbols-outlined text-tertiary text-[22px]">person_book</span>
+                <span class="material-symbols-outlined text-tertiary text-[22px]">chat_bubble</span>
             </div>
             <div>
-                <p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-wide">Giảng viên</p>
-                <p class="text-xl font-bold text-on-surface">@FormatNumber(Model.Stats.TotalLecturers)</p>
+                <p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-wide">Chat mới (7 ngày)</p>
+                <p class="text-xl font-bold text-on-surface">@Model.Stats.TotalChatSessionsLast7Days</p>
+            </div>
+        </div>
+        <div class="bg-gradient-to-br from-secondary/10 to-transparent border border-secondary/25 rounded-xl p-4 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-secondary/15 flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-secondary text-[22px]">query_stats</span>
+            </div>
+            <div>
+                <p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-wide">Avg tin nhắn/session</p>
+                <p class="text-xl font-bold text-on-surface">@Model.Stats.AvgMessagesPerSession.ToString("0.0")</p>
             </div>
         </div>
         <div class="bg-gradient-to-br from-on-surface-variant/10 to-transparent border border-outline-variant/30 rounded-xl p-4 flex items-center gap-3">
             <div class="w-10 h-10 rounded-xl bg-surface-container-highest flex items-center justify-center shrink-0">
-                <span class="material-symbols-outlined text-on-surface-variant text-[22px]">folder_open</span>
+                <span class="material-symbols-outlined text-on-surface-variant text-[22px]">upload_file</span>
             </div>
             <div>
-                <p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-wide">Môn học</p>
-                <p class="text-xl font-bold text-on-surface">@Model.Stats.TotalSubjects <span class="text-xs font-normal text-outline">(@Model.Stats.ActiveSubjects active)</span></p>
+                <p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-wide">Tài liệu mới (7 ngày)</p>
+                <p class="text-xl font-bold text-on-surface">@Model.Stats.NewDocumentsLast7Days</p>
             </div>
         </div>
     </div>
 
-    
+    <!-- ── Token usage card ── -->
+    <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-5 select-none">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div>
+                <h4 class="font-headline-sm text-base font-bold text-on-surface flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[18px] text-secondary">token</span>
+                    Thống kê Token AI
+                </h4>
+                <p class="text-[11px] text-on-surface-variant mt-0.5">Tổng lượng token đã tiêu thụ qua tất cả phiên chat</p>
+            </div>
+            <div class="text-right">
+                <p class="text-2xl font-bold text-on-surface">@FormatNumber(Model.Stats.TotalTokensConsumed)</p>
+                <p class="text-[11px] text-outline">tổng tokens</p>
+            </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <div class="flex justify-between items-center mb-1.5">
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-primary block"></span>
+                        <span class="text-xs text-on-surface-variant">Prompt tokens (input)</span>
+                    </div>
+                    <span class="text-xs font-bold text-on-surface">@FormatNumber(Model.Stats.PromptTokensTotal)</span>
+                </div>
+                <div class="h-2 bg-surface-container-highest rounded-full overflow-hidden">
+                    @{
+                        var promptPct = Model.Stats.TotalTokensConsumed > 0
+                            ? (int)(Model.Stats.PromptTokensTotal * 100 / Model.Stats.TotalTokensConsumed) : 0;
+                    }
+                    <div class="h-full bg-primary rounded-full transition-all" style="width: @promptPct%"></div>
+                </div>
+                <p class="text-[10px] text-outline mt-1">@promptPct% tổng tokens</p>
+            </div>
+            <div>
+                <div class="flex justify-between items-center mb-1.5">
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-tertiary block"></span>
+                        <span class="text-xs text-on-surface-variant">Completion tokens (output)</span>
+                    </div>
+                    <span class="text-xs font-bold text-on-surface">@FormatNumber(Model.Stats.CompletionTokensTotal)</span>
+                </div>
+                <div class="h-2 bg-surface-container-highest rounded-full overflow-hidden">
+                    @{
+                        var completionPct = Model.Stats.TotalTokensConsumed > 0
+                            ? (int)(Model.Stats.CompletionTokensTotal * 100 / Model.Stats.TotalTokensConsumed) : 0;
+                    }
+                    <div class="h-full bg-tertiary rounded-full transition-all" style="width: @completionPct%"></div>
+                </div>
+                <p class="text-[10px] text-outline mt-1">@completionPct% tổng tokens</p>
+            </div>
+        </div>
+        <div class="mt-4 pt-4 border-t border-outline-variant/20 flex flex-wrap gap-4 text-[11px] text-on-surface-variant">
+            <span>Chat 30 ngày: <strong class="text-on-surface">@FormatNumber(Model.Stats.TotalChatSessionsLast30Days)</strong> sessions</span>
+            <span>·</span>
+            <span>Chat 7 ngày: <strong class="text-on-surface">@FormatNumber(Model.Stats.TotalChatSessionsLast7Days)</strong> sessions</span>
+            <span>·</span>
+            <span>Avg: <strong class="text-on-surface">@Model.Stats.AvgMessagesPerSession.ToString("0.0")</strong> tin nhắn/session</span>
+        </div>
+    </div>
+
+    <!-- ── Charts row 1: Role donut + Top subjects by docs ── -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 select-none">
         <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-5 flex flex-col">
             <h4 class="font-headline-sm text-base font-bold text-on-surface mb-4">Phân bổ vai trò</h4>
@@ -154,7 +214,7 @@
         </div>
     </div>
 
-    
+    <!-- ── Charts row 2: 14-day activity + Top by chat ── -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 select-none">
         <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-5 flex flex-col">
             <h4 class="font-headline-sm text-base font-bold text-on-surface mb-4">Hoạt động 14 ngày gần nhất</h4>
@@ -183,7 +243,7 @@
         </div>
     </div>
 
-    
+    <!-- ── Top subjects list ── -->
     <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-5">
         <h4 class="font-headline-sm text-base font-bold text-on-surface mb-3 select-none">Top môn học theo tài liệu</h4>
         @if (Model.Stats.TopSubjects.Any())
@@ -211,7 +271,78 @@
         }
     </div>
 
-    
+    <!-- ── Per-subject detailed stats table ── -->
+    <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-5">
+        <div class="flex items-center justify-between mb-4 select-none">
+            <div>
+                <h4 class="font-headline-sm text-base font-bold text-on-surface flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[18px] text-primary">analytics</span>
+                    Thống kê chi tiết theo môn học
+                </h4>
+                <p class="text-[11px] text-on-surface-variant mt-0.5">Tổng hợp tài liệu, phiên chat, tin nhắn và token tiêu thụ</p>
+            </div>
+            <span class="text-[11px] text-outline font-mono">@Model.Stats.SubjectDetailStats.Count môn</span>
+        </div>
+        @if (Model.Stats.SubjectDetailStats.Any())
+        {
+            <div class="overflow-x-auto rounded-lg border border-outline-variant/20">
+                <table class="w-full text-xs">
+                    <thead>
+                        <tr class="bg-surface-container border-b border-outline-variant/20 select-none">
+                            <th class="text-left px-3 py-2.5 font-bold text-on-surface-variant uppercase tracking-wide text-[10px]">Môn học</th>
+                            <th class="text-center px-3 py-2.5 font-bold text-on-surface-variant uppercase tracking-wide text-[10px]">Tài liệu</th>
+                            <th class="text-center px-3 py-2.5 font-bold text-on-surface-variant uppercase tracking-wide text-[10px]">Sessions</th>
+                            <th class="text-center px-3 py-2.5 font-bold text-on-surface-variant uppercase tracking-wide text-[10px]">Tin nhắn</th>
+                            <th class="text-center px-3 py-2.5 font-bold text-on-surface-variant uppercase tracking-wide text-[10px]">Tokens</th>
+                            <th class="text-right px-3 py-2.5 font-bold text-on-surface-variant uppercase tracking-wide text-[10px]">Dung lượng</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-outline-variant/10">
+                        @foreach (var s in Model.Stats.SubjectDetailStats)
+                        {
+                            <tr class="hover:bg-surface-container/50 transition-colors">
+                                <td class="px-3 py-2.5">
+                                    <span class="text-[10px] font-mono text-primary font-bold block">@s.SubjectCode</span>
+                                    <span class="text-on-surface font-semibold">@s.Name</span>
+                                </td>
+                                <td class="px-3 py-2.5 text-center">
+                                    <span class="font-bold text-on-surface">@s.DocumentCount</span>
+                                </td>
+                                <td class="px-3 py-2.5 text-center">
+                                    @if (s.ChatSessionCount > 0)
+                                    {
+                                        <span class="inline-flex items-center gap-0.5 bg-tertiary/10 text-tertiary font-bold px-1.5 py-0.5 rounded">@s.ChatSessionCount</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-outline">0</span>
+                                    }
+                                </td>
+                                <td class="px-3 py-2.5 text-center text-on-surface-variant">@FormatNumber(s.ChatMessageCount)</td>
+                                <td class="px-3 py-2.5 text-center">
+                                    @if (s.TokensConsumed > 0)
+                                    {
+                                        <span class="text-secondary font-bold">@FormatNumber(s.TokensConsumed)</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-outline">—</span>
+                                    }
+                                </td>
+                                <td class="px-3 py-2.5 text-right text-on-surface-variant">@FormatBytes(s.StorageBytes)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-8 text-on-surface-variant text-xs">Chưa có dữ liệu môn học.</div>
+        }
+    </div>
+
+    <!-- ── Quick actions ── -->
     <div class="space-y-4">
         <h3 class="font-headline-sm text-headline-sm font-bold text-on-surface select-none">Hành động nhanh</h3>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -275,7 +406,7 @@
                 }
             });
 
-            // 2) Top subjects bar
+            // 2) Top subjects bar (by documents)
             const subjectEl = document.getElementById('topSubjectsChart');
             if (subjectEl) {
                 const subLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Stats.TopSubjects.Select(s => s.SubjectCode)));
@@ -297,10 +428,11 @@
                 });
             }
 
-            // 3) 14-day activity line (users + docs)
+            // 3) 14-day activity line (users + docs + chat sessions)
             const actLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Stats.Last14DaysActivity.Select(d => d.Day.ToString("MM/dd"))));
             const newUsers = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Stats.Last14DaysActivity.Select(d => d.NewUsers)));
             const newDocs  = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Stats.Last14DaysActivity.Select(d => d.NewDocuments)));
+            const newChats = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Stats.Last14DaysActivity.Select(d => d.NewChatSessions)));
             new Chart(document.getElementById('activityChart').getContext('2d'), {
                 type: 'line',
                 data: {
@@ -317,6 +449,12 @@
                             data: newDocs,
                             borderColor: '#6ddd81', backgroundColor: 'rgba(109,221,129,0.08)',
                             fill: true, tension: 0.35, borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#6ddd81'
+                        },
+                        {
+                            label: 'Chat mới',
+                            data: newChats,
+                            borderColor: '#ffb4ab', backgroundColor: 'rgba(255,180,171,0.08)',
+                            fill: true, tension: 0.35, borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#ffb4ab'
                         }
                     ]
                 },
@@ -330,7 +468,7 @@
                 }
             });
 
-            // 4) Top subjects by chat (horizontal bar chart)
+            // 4) Top subjects by chat (horizontal bar)
             const chatChartEl = document.getElementById('topSubjectsChatChart');
             if (chatChartEl) {
                 const chatLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Stats.TopSubjectsByChat.Select(s => s.SubjectCode)));

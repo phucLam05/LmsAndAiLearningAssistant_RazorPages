@@ -88,6 +88,7 @@ namespace PL
                 try
                 {
                     await DbSeeder.SeedAdminUserAsync(services);
+                    await DbSeeder.SeedSubjectsAsync(services);
                 }
                 catch (Exception ex)
                 {

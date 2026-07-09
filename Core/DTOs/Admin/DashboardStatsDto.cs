@@ -25,10 +25,19 @@ namespace Core.DTOs.Admin
         public int FailedDocuments { get; set; }
         public long TotalStorageUsedBytes { get; set; }
         public int TotalDocumentChunks { get; set; }
+        public int NewDocumentsLast7Days { get; set; }
 
         // Chat statistics
         public int TotalChatSessions { get; set; }
         public int TotalChatMessages { get; set; }
+        public int TotalChatSessionsLast7Days { get; set; }
+        public int TotalChatSessionsLast30Days { get; set; }
+        public double AvgMessagesPerSession { get; set; }
+
+        // Token breakdown
+        public long TotalTokensConsumed { get; set; }
+        public long PromptTokensTotal { get; set; }
+        public long CompletionTokensTotal { get; set; }
 
         // Charts
         public List<DailyActivityDto> Last14DaysActivity { get; set; } = new();
@@ -36,8 +45,10 @@ namespace Core.DTOs.Admin
         public List<TopSubjectDto> TopSubjects { get; set; } = new();
         public List<SubjectChatRankDto> TopSubjectsByChat { get; set; } = new();
 
+        // Detailed per-subject breakdown
+        public List<SubjectDetailStatsDto> SubjectDetailStats { get; set; } = new();
+
         // Aliases for the Razor views
-        public long TotalTokensConsumed { get; set; }
         public int AdminCount => UsersByRole.FirstOrDefault(r => r.Role == "Admin")?.Count ?? 0;
         public int LecturerCount => UsersByRole.FirstOrDefault(r => r.Role == "Lecturer")?.Count ?? 0;
         public int StudentCount => UsersByRole.FirstOrDefault(r => r.Role == "Student")?.Count ?? 0;
@@ -49,6 +60,7 @@ namespace Core.DTOs.Admin
         public DateTime Day { get; set; }
         public int NewUsers { get; set; }
         public int NewDocuments { get; set; }
+        public int NewChatSessions { get; set; }
         // Aliases for Razor views
         public DateTime Date => Day;
         public int Count => NewUsers + NewDocuments;
@@ -77,5 +89,25 @@ namespace Core.DTOs.Admin
         public string SubjectCode { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public int ChatCount { get; set; }
+    }
+
+    public class SubjectDetailStatsDto
+    {
+        public Guid SubjectId { get; set; }
+        public string SubjectCode { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public int DocumentCount { get; set; }
+        public int ChatSessionCount { get; set; }
+        public int ChatMessageCount { get; set; }
+        public long TokensConsumed { get; set; }
+        public long StorageBytes { get; set; }
+    }
+
+    public class SubjectMessageStatsDto
+    {
+        public Guid SubjectId { get; set; }
+        public long PromptTokens { get; set; }
+        public long CompletionTokens { get; set; }
+        public int MessageCount { get; set; }
     }
 }
