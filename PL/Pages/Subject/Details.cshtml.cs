@@ -108,7 +108,15 @@ namespace PL.Pages.Subject
         {
             var d = await _documentService.GetDocumentByIdAsync(docId);
             if (d == null) return new JsonResult(new { });
-            return new JsonResult(new { id = d.Id, status = d.Status.ToString() });
+            
+            var progress = await _documentService.GetProcessingProgressAsync(docId);
+            return new JsonResult(new 
+            { 
+                id = d.Id, 
+                status = d.Status.ToString(), 
+                processed = progress.Processed, 
+                total = progress.Total 
+            });
         }
 
         private UserRole GetUserRole()

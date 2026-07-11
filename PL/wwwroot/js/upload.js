@@ -297,8 +297,14 @@
                     const txt = el.querySelector('.doc-status-text');
                     const vietnameseStatus = statusMap[j.status] || j.status;
 
-                    if (txt && txt.textContent.trim() !== vietnameseStatus) {
-                        txt.textContent = vietnameseStatus;
+                    let displayStatus = vietnameseStatus;
+                    if (j.status === 'Processing' && j.total > 0) {
+                        const pct = Math.round((j.processed / j.total) * 100);
+                        displayStatus = `Đang xử lý (${j.processed}/${j.total} - ${pct}%)`;
+                    }
+
+                    if (txt && txt.textContent.trim() !== displayStatus) {
+                        txt.textContent = displayStatus;
                         el.classList.remove('bg-blue-500/10', 'border-blue-500/20', 'text-blue-500',
                             'bg-tertiary-container/20', 'border-tertiary/20', 'text-tertiary',
                             'bg-error-container/20', 'border-error/20', 'text-error',
@@ -323,7 +329,7 @@
                         }
 
                         if (j.status === 'Success' || j.status === 'Failed') {
-                            setTimeout(() => location.reload(), 800);
+                            setTimeout(() => location.reload(), 1500);
                             return;
                         }
                     }

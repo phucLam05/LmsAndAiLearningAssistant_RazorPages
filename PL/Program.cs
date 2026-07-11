@@ -23,6 +23,7 @@ namespace PL
 
             builder.Services.AddDataAccessLayer(builder.Configuration);
             builder.Services.AddBusinessLogicLayer();
+            builder.Services.AddScoped<BLL.Interfaces.IDocumentProgressNotifier, PL.Services.SignalRDocumentProgressNotifier>();
             builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
                 .AddCookie(options =>
                 {
