@@ -276,6 +276,13 @@
      * Each <span data-doc-id="..."> gets refreshed; on terminal status, reloads page.
      */
     function pollDocumentStatus(handlerUrl, token) {
+        const statusMap = {
+            'Success': 'Thành công',
+            'Failed': 'Thất bại',
+            'Processing': 'Đang xử lý',
+            'Pending': 'Đang chờ'
+        };
+
         setInterval(async () => {
             const els = document.querySelectorAll('.doc-status');
             for (const el of els) {
@@ -288,8 +295,10 @@
                     if (!r.ok) continue;
                     const j = await r.json();
                     const txt = el.querySelector('.doc-status-text');
-                    if (txt && txt.textContent.trim() !== j.status) {
-                        txt.textContent = j.status;
+                    const vietnameseStatus = statusMap[j.status] || j.status;
+
+                    if (txt && txt.textContent.trim() !== vietnameseStatus) {
+                        txt.textContent = vietnameseStatus;
                         el.classList.remove('bg-blue-500/10', 'border-blue-500/20', 'text-blue-500',
                             'bg-tertiary-container/20', 'border-tertiary/20', 'text-tertiary',
                             'bg-error-container/20', 'border-error/20', 'text-error',
@@ -298,6 +307,21 @@
                         else if (j.status === 'Failed') el.classList.add('bg-error-container/20', 'border-error/20', 'text-error');
                         else if (j.status === 'Processing') el.classList.add('bg-blue-500/10', 'border-blue-500/20', 'text-blue-500');
                         else el.classList.add('bg-yellow-500/10', 'border-yellow-500/20', 'text-yellow-500');
+
+                        // Manage dynamic spinner
+                        let spinner = el.querySelector('.animate-spin');
+                        if (j.status === 'Processing') {
+                            if (!spinner) {
+                                spinner = document.createElement('span');
+                                spinner.className = 'w-3 h-3 border-2 border-t-transparent border-blue-500 rounded-full animate-spin';
+                                el.insertBefore(spinner, txt);
+                            }
+                        } else {
+                            if (spinner) {
+                                spinner.remove();
+                            }
+                        }
+
                         if (j.status === 'Success' || j.status === 'Failed') {
                             setTimeout(() => location.reload(), 800);
                             return;

@@ -164,6 +164,10 @@
                             <span class="material-symbols-outlined @(isActiveAction("Admin", "Users") ? "filled" : "text-outline group-hover:text-on-surface")">group</span>
                             <span class="flex-1">Người dùng</span>
                         </a>
+                        <a class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all font-body-md text-body-md group @(isActiveAction("Admin", "ChunkingConfig") ? "bg-secondary-container text-on-secondary-container font-bold" : "text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface")" asp-page="/Admin/ChunkingConfig">
+                            <span class="material-symbols-outlined @(isActiveAction("Admin", "ChunkingConfig") ? "filled" : "text-outline group-hover:text-on-surface")">settings_suggest</span>
+                            <span class="flex-1">Cấu hình Chunking</span>
+                        </a>
                     }
                     else
                     {
