@@ -10,6 +10,7 @@ namespace BLL
         public static IServiceCollection AddBusinessLogicLayer(this IServiceCollection services)
         {
             services.AddScoped<IAuthService, AuthService>();
+            services.AddScoped<IChunkingConfigService, ChunkingConfigService>();
             services.AddScoped<IChunkingService, ChunkingService>();
             services.AddScoped<IDocumentService, DocumentService>();
             services.AddScoped<IEmbeddingService, DocumentEmbeddingService>();

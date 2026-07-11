@@ -315,8 +315,13 @@ namespace BLL.Services
         private string GenerateRandomPassword()
         {
             const string chars = "ABCDEFGHJKLMNOPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$";
-            var random = new Random();
-            return new string(Enumerable.Repeat(chars, 8).Select(s => s[random.Next(s.Length)]).ToArray());
+            var passwordChars = new char[8];
+            for (int i = 0; i < 8; i++)
+            {
+                int index = RandomNumberGenerator.GetInt32(chars.Length);
+                passwordChars[i] = chars[index];
+            }
+            return new string(passwordChars);
         }
 
         private async Task<string> GenerateUniqueUserCodeAsync(string prefix)

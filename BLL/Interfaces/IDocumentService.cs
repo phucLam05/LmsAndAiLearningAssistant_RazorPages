@@ -30,5 +30,7 @@ namespace BLL.Interfaces
         Task<IReadOnlyList<DocumentDto>> GetAllDocumentsAsync();
 
         Task<PagedResult<DocumentDto>> GetPagedDocumentsAsync(string? search, string? status, Guid? subjectId, int pageIndex, int pageSize);
+
+        Task<(int Processed, int Total)> GetProcessingProgressAsync(Guid documentId);
     }
 }
