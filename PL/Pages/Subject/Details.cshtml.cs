@@ -50,6 +50,21 @@ namespace PL.Pages.Subject
             if (userId == null) return new JsonResult(new { success = false, message = "Không có quyền truy cập." });
             if (file == null || file.Length == 0) return new JsonResult(new { success = false, message = "Vui lòng chọn tệp tin." });
 
+            // Backend validation: File extension
+            var allowedExtensions = new[] { ".pdf", ".docx", ".md", ".txt" };
+            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (!allowedExtensions.Contains(extension))
+            {
+                return new JsonResult(new { success = false, message = "Định dạng tệp không được hỗ trợ. Chỉ chấp nhận các tệp .pdf, .docx, .md, .txt." });
+            }
+
+            // Backend validation: File size (max 15MB)
+            const long maxFileSize = 15 * 1024 * 1024; // 15MB
+            if (file.Length > maxFileSize)
+            {
+                return new JsonResult(new { success = false, message = "Dung lượng tệp vượt quá giới hạn cho phép (tối đa 15MB)." });
+            }
+
             try
             {
                 await using var stream = file.OpenReadStream();

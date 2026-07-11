@@ -219,7 +219,37 @@
         async function handleFiles(fileList) {
             const files = Array.from(fileList);
             if (!files.length || !card) return;
-            const { rows, updateSummary } = renderUploadList(card, files);
+
+            const allowedExtensions = ['.pdf', '.docx', '.md', '.txt'];
+            const maxFileSize = 15 * 1024 * 1024; // 15MB
+
+            const validFiles = [];
+            const invalidFiles = [];
+
+            for (const file of files) {
+                const name = file.name.toLowerCase();
+                const ext = name.substring(name.lastIndexOf('.'));
+                if (!allowedExtensions.includes(ext)) {
+                    invalidFiles.push(`${file.name} (Định dạng không hỗ trợ)`);
+                } else if (file.size > maxFileSize) {
+                    invalidFiles.push(`${file.name} (Dung lượng > 15MB)`);
+                } else {
+                    validFiles.push(file);
+                }
+            }
+
+            if (invalidFiles.length > 0) {
+                const errorMsg = "Một số tệp tin bị từ chối do không hợp lệ:\n" + invalidFiles.join("\n");
+                if (typeof showNotification === 'function') {
+                    showNotification(errorMsg, "error");
+                } else {
+                    alert(errorMsg);
+                }
+            }
+
+            if (!validFiles.length) return;
+
+            const { rows, updateSummary } = renderUploadList(card, validFiles);
             const startedAt = Date.now();
             // Tick summary every 500ms while running
             const tick = setInterval(updateSummary, 500);
