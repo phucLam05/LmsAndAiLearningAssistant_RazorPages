@@ -219,7 +219,37 @@
         async function handleFiles(fileList) {
             const files = Array.from(fileList);
             if (!files.length || !card) return;
-            const { rows, updateSummary } = renderUploadList(card, files);
+
+            const allowedExtensions = ['.pdf', '.docx', '.md', '.txt'];
+            const maxFileSize = 15 * 1024 * 1024; // 15MB
+
+            const validFiles = [];
+            const invalidFiles = [];
+
+            for (const file of files) {
+                const name = file.name.toLowerCase();
+                const ext = name.substring(name.lastIndexOf('.'));
+                if (!allowedExtensions.includes(ext)) {
+                    invalidFiles.push(`${file.name} (Định dạng không hỗ trợ)`);
+                } else if (file.size > maxFileSize) {
+                    invalidFiles.push(`${file.name} (Dung lượng > 15MB)`);
+                } else {
+                    validFiles.push(file);
+                }
+            }
+
+            if (invalidFiles.length > 0) {
+                const errorMsg = "Một số tệp tin bị từ chối do không hợp lệ:\n" + invalidFiles.join("\n");
+                if (typeof showNotification === 'function') {
+                    showNotification(errorMsg, "error");
+                } else {
+                    alert(errorMsg);
+                }
+            }
+
+            if (!validFiles.length) return;
+
+            const { rows, updateSummary } = renderUploadList(card, validFiles);
             const startedAt = Date.now();
             // Tick summary every 500ms while running
             const tick = setInterval(updateSummary, 500);
@@ -276,6 +306,13 @@
      * Each <span data-doc-id="..."> gets refreshed; on terminal status, reloads page.
      */
     function pollDocumentStatus(handlerUrl, token) {
+        const statusMap = {
+            'Success': 'Thành công',
+            'Failed': 'Thất bại',
+            'Processing': 'Đang xử lý',
+            'Pending': 'Đang chờ'
+        };
+
         setInterval(async () => {
             const els = document.querySelectorAll('.doc-status');
             for (const el of els) {
@@ -288,8 +325,16 @@
                     if (!r.ok) continue;
                     const j = await r.json();
                     const txt = el.querySelector('.doc-status-text');
-                    if (txt && txt.textContent.trim() !== j.status) {
-                        txt.textContent = j.status;
+                    const vietnameseStatus = statusMap[j.status] || j.status;
+
+                    let displayStatus = vietnameseStatus;
+                    if (j.status === 'Processing' && j.total > 0) {
+                        const pct = Math.round((j.processed / j.total) * 100);
+                        displayStatus = `Đang xử lý (${j.processed}/${j.total} - ${pct}%)`;
+                    }
+
+                    if (txt && txt.textContent.trim() !== displayStatus) {
+                        txt.textContent = displayStatus;
                         el.classList.remove('bg-blue-500/10', 'border-blue-500/20', 'text-blue-500',
                             'bg-tertiary-container/20', 'border-tertiary/20', 'text-tertiary',
                             'bg-error-container/20', 'border-error/20', 'text-error',
@@ -298,8 +343,23 @@
                         else if (j.status === 'Failed') el.classList.add('bg-error-container/20', 'border-error/20', 'text-error');
                         else if (j.status === 'Processing') el.classList.add('bg-blue-500/10', 'border-blue-500/20', 'text-blue-500');
                         else el.classList.add('bg-yellow-500/10', 'border-yellow-500/20', 'text-yellow-500');
+
+                        // Manage dynamic spinner
+                        let spinner = el.querySelector('.animate-spin');
+                        if (j.status === 'Processing') {
+                            if (!spinner) {
+                                spinner = document.createElement('span');
+                                spinner.className = 'w-3 h-3 border-2 border-t-transparent border-blue-500 rounded-full animate-spin';
+                                el.insertBefore(spinner, txt);
+                            }
+                        } else {
+                            if (spinner) {
+                                spinner.remove();
+                            }
+                        }
+
                         if (j.status === 'Success' || j.status === 'Failed') {
-                            setTimeout(() => location.reload(), 800);
+                            setTimeout(() => location.reload(), 1500);
                             return;
                         }
                     }

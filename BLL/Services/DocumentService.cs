@@ -379,5 +379,13 @@ namespace BLL.Services
                 UploaderName = document.Uploader?.FullName
             };
         }
+
+        public async Task<(int Processed, int Total)> GetProcessingProgressAsync(Guid documentId)
+        {
+            var chunks = await _documentChunkRepository.GetChunksByDocumentIdAsync(documentId);
+            int total = chunks.Count;
+            int processed = chunks.Count(c => c.Embedding != null);
+            return (processed, total);
+        }
     }
 }

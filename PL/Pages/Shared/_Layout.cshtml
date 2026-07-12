@@ -164,6 +164,10 @@
                             <span class="material-symbols-outlined @(isActiveAction("Admin", "Users") ? "filled" : "text-outline group-hover:text-on-surface")">group</span>
                             <span class="flex-1">Người dùng</span>
                         </a>
+                        <a class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all font-body-md text-body-md group @(isActiveAction("Admin", "ChunkingConfig") ? "bg-secondary-container text-on-secondary-container font-bold" : "text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface")" asp-page="/Admin/ChunkingConfig">
+                            <span class="material-symbols-outlined @(isActiveAction("Admin", "ChunkingConfig") ? "filled" : "text-outline group-hover:text-on-surface")">settings_suggest</span>
+                            <span class="flex-1">Cấu hình Chunking</span>
+                        </a>
                     }
                     else
                     {
@@ -305,6 +309,63 @@
                     const path = window.location.pathname.toLowerCase();
                     if (path.includes("/subject") || path.includes("/lecturer/portal") || path.includes("/document")) {
                         setTimeout(() => window.location.reload(), 1500);
+                    }
+                });
+
+                connection.on("ReceiveDocumentProgress", function (documentId, status, processed, total) {
+                    const el = document.querySelector(`.doc-status[data-doc-id="${documentId}"]`);
+                    if (el) {
+                        const txt = el.querySelector('.doc-status-text');
+                        if (txt) {
+                            let displayStatus = status;
+                            if (status === 'Processing') {
+                                if (total > 0) {
+                                    const pct = Math.round((processed / total) * 100);
+                                    displayStatus = `Đang xử lý (${processed}/${total} - ${pct}%)`;
+                                } else {
+                                    displayStatus = 'Đang xử lý...';
+                                }
+                            } else if (status === 'Success') {
+                                displayStatus = 'Thành công';
+                            } else if (status === 'Failed') {
+                                displayStatus = 'Thất bại';
+                            } else if (status === 'Pending') {
+                                displayStatus = 'Đang chờ';
+                            }
+
+                            if (txt.textContent.trim() !== displayStatus) {
+                                txt.textContent = displayStatus;
+                                el.classList.remove('bg-blue-500/10', 'border-blue-500/20', 'text-blue-500',
+                                    'bg-tertiary-container/20', 'border-tertiary/20', 'text-tertiary',
+                                    'bg-error-container/20', 'border-error/20', 'text-error',
+                                    'bg-yellow-500/10', 'border-yellow-500/20', 'text-yellow-500');
+
+                                if (status === 'Success') el.classList.add('bg-tertiary-container/20', 'border-tertiary/20', 'text-tertiary');
+                                else if (status === 'Failed') el.classList.add('bg-error-container/20', 'border-error/20', 'text-error');
+                                else if (status === 'Processing') el.classList.add('bg-blue-500/10', 'border-blue-500/20', 'text-blue-500');
+                                else el.classList.add('bg-yellow-500/10', 'border-yellow-500/20', 'text-yellow-500');
+
+                                let spinner = el.querySelector('.animate-spin');
+                                if (status === 'Processing') {
+                                    if (!spinner) {
+                                        spinner = document.createElement('span');
+                                        spinner.className = 'w-3 h-3 border-2 border-t-transparent border-blue-500 rounded-full animate-spin';
+                                        el.insertBefore(spinner, txt);
+                                    }
+                                } else {
+                                    if (spinner) {
+                                        spinner.remove();
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (status === 'Success' || status === 'Failed') {
+                        const path = window.location.pathname.toLowerCase();
+                        if (path.includes("/subject") || path.includes("/lecturer/portal") || path.includes("/document")) {
+                            setTimeout(() => window.location.reload(), 1500);
+                        }
                     }
                 });
 

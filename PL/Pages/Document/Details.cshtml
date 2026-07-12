@@ -1,4 +1,4 @@
-﻿@page
+@page
 @model PL.Pages.Document.DetailsModel
 @using Core.Entities
 @{
@@ -91,7 +91,7 @@
                             <span class="font-mono">#@chunk.ChunkIndex @(chunk.PageNumber.HasValue ? $"· Trang {chunk.PageNumber}" : "")</span>
                             <span>~@chunk.TokenCount tokens</span>
                         </div>
-                        <p class="text-xs text-on-surface leading-relaxed whitespace-pre-wrap line-clamp-6">@chunk.Content</p>
+                        <p class="text-xs text-on-surface leading-relaxed whitespace-pre-wrap">@chunk.Content</p>
                     </div>
                 }
             </div>
