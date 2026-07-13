@@ -1,3 +1,4 @@
+using Core.DTOs.Admin;
 using Core.Entities;
 using System;
 using System.Collections.Generic;
@@ -11,5 +12,7 @@ namespace DAL.Interfaces
         Task<IReadOnlyList<ChatMessage>> GetBySessionIdAsync(Guid sessionId);
         Task<int> CountAllAsync();
         Task<long> GetTotalTokensAsync();
+        Task<(long PromptTokens, long CompletionTokens)> GetTokenBreakdownAsync();
+        Task<List<SubjectMessageStatsDto>> GetStatsGroupedBySubjectAsync();
     }
 }

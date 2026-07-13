@@ -67,7 +67,7 @@ namespace BLL.Services
 
         public async Task<DashboardStatsDto> GetDashboardStatsAsync()
         {
-            // Parallel queries for performance
+            // Parallel data fetch
             var allUsers = (await _userRepository.GetAllUsersAsync()).ToList();
             var allSubjects = (await _subjectRepository.GetAllAsync()).ToList();
             var allDocuments = (await _documentRepository.GetAllWithDetailsAsync()).ToList();
@@ -77,8 +77,12 @@ namespace BLL.Services
             var totalChatSessions = await _chatSessionRepository.CountAllAsync();
             var totalChatMessages = await _chatMessageRepository.CountAllAsync();
             var allSessions = (await _chatSessionRepository.GetAllAsync()).ToList();
+            var tokenBreakdown = await _chatMessageRepository.GetTokenBreakdownAsync();
+            var subjectMsgStats = await _chatMessageRepository.GetStatsGroupedBySubjectAsync();
 
             var today = DateTime.UtcNow.Date;
+            var last7Days = today.AddDays(-7);
+            var last30Days = today.AddDays(-30);
 
             var stats = new DashboardStatsDto
             {
@@ -89,7 +93,7 @@ namespace BLL.Services
                 TotalAdmins = allUsers.Count(u => u.Role == UserRole.Admin),
                 ActiveUsers = allUsers.Count(u => u.Status == UserStatus.Active),
                 InactiveUsers = allUsers.Count(u => u.Status == UserStatus.Inactive),
-                NewUsersLast7Days = allUsers.Count(u => u.CreatedAt >= today.AddDays(-7)),
+                NewUsersLast7Days = allUsers.Count(u => u.CreatedAt >= last7Days),
 
                 // Subjects
                 TotalSubjects = allSubjects.Count,
@@ -103,11 +107,20 @@ namespace BLL.Services
                 FailedDocuments = allDocuments.Count(d => d.Status == DocumentStatus.Failed),
                 TotalStorageUsedBytes = allDocuments.Sum(d => d.FileSize),
                 TotalDocumentChunks = totalChunks,
+                NewDocumentsLast7Days = allDocuments.Count(d => d.CreatedAt >= last7Days),
 
                 // Chat
                 TotalChatSessions = totalChatSessions,
                 TotalChatMessages = totalChatMessages,
-                TotalTokensConsumed = await _chatMessageRepository.GetTotalTokensAsync(),
+                TotalChatSessionsLast7Days = allSessions.Count(s => s.CreatedAt >= last7Days),
+                TotalChatSessionsLast30Days = allSessions.Count(s => s.CreatedAt >= last30Days),
+                AvgMessagesPerSession = totalChatSessions > 0
+                    ? Math.Round((double)totalChatMessages / totalChatSessions, 1) : 0,
+
+                // Tokens
+                TotalTokensConsumed = tokenBreakdown.PromptTokens + tokenBreakdown.CompletionTokens,
+                PromptTokensTotal = tokenBreakdown.PromptTokens,
+                CompletionTokensTotal = tokenBreakdown.CompletionTokens,
 
                 // Roles distribution (for donut chart)
                 UsersByRole = new List<RoleDistributionDto>
@@ -118,7 +131,7 @@ namespace BLL.Services
                 },
             };
 
-            // Last 14 days activity
+            // ── Last 14 days activity (users + docs + chat sessions) ──
             for (int i = 13; i >= 0; i--)
             {
                 var day = today.AddDays(-i);
@@ -128,10 +141,11 @@ namespace BLL.Services
                     Day = day,
                     NewUsers = allUsers.Count(u => u.CreatedAt >= day && u.CreatedAt < next),
                     NewDocuments = allDocuments.Count(d => d.CreatedAt >= day && d.CreatedAt < next),
+                    NewChatSessions = allSessions.Count(s => s.CreatedAt >= day && s.CreatedAt < next),
                 });
             }
 
-            // Top subjects by document count
+            // ── Top subjects by document count ──
             foreach (var s in allSubjects
                 .Select(s => new { Subject = s, Documents = allDocuments.Where(d => d.SubjectId == s.Id).ToList() })
                 .OrderByDescending(x => x.Documents.Count)
@@ -149,7 +163,7 @@ namespace BLL.Services
                 });
             }
 
-            // Top subjects by chat session count
+            // ── Top subjects by chat session count ──
             stats.TopSubjectsByChat = allSessions
                 .GroupBy(s => s.SubjectId ?? Guid.Empty)
                 .Select(g =>
@@ -164,7 +178,37 @@ namespace BLL.Services
                     };
                 })
                 .OrderByDescending(x => x.ChatCount)
-                .Take(5)
+                .Take(8)
+                .ToList();
+
+            // ── Detailed per-subject stats ──
+            var sessionsBySubject = allSessions
+                .Where(s => s.SubjectId.HasValue)
+                .GroupBy(s => s.SubjectId!.Value)
+                .ToDictionary(g => g.Key, g => g.Count());
+
+            var msgStatsBySubject = subjectMsgStats.ToDictionary(s => s.SubjectId);
+
+            stats.SubjectDetailStats = allSubjects
+                .Select(s =>
+                {
+                    var docs = allDocuments.Where(d => d.SubjectId == s.Id).ToList();
+                    sessionsBySubject.TryGetValue(s.Id, out var sessionCount);
+                    msgStatsBySubject.TryGetValue(s.Id, out var msgStat);
+                    return new SubjectDetailStatsDto
+                    {
+                        SubjectId = s.Id,
+                        SubjectCode = s.SubjectCode,
+                        Name = s.Name,
+                        DocumentCount = docs.Count,
+                        StorageBytes = docs.Sum(d => d.FileSize),
+                        ChatSessionCount = sessionCount,
+                        ChatMessageCount = msgStat?.MessageCount ?? 0,
+                        TokensConsumed = (msgStat?.PromptTokens ?? 0) + (msgStat?.CompletionTokens ?? 0),
+                    };
+                })
+                .OrderByDescending(x => x.ChatSessionCount)
+                .ThenByDescending(x => x.DocumentCount)
                 .ToList();
 
             return stats;

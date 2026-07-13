@@ -17,17 +17,20 @@ namespace BLL.Services
         private readonly IDocumentChunkRepository _documentChunkRepository;
         private readonly ILogger<ChunkingService> _logger;
         private readonly ISupabaseStorageProvider _storageProvider;
+        private readonly IChunkingConfigService _chunkingConfigService;
 
         public ChunkingService(
             IDocumentRepository documentRepository,
             IDocumentChunkRepository documentChunkRepository,
             ILogger<ChunkingService> logger, 
-            ISupabaseStorageProvider storageProvider)
+            ISupabaseStorageProvider storageProvider,
+            IChunkingConfigService chunkingConfigService)
         {
             _documentRepository = documentRepository;
             _documentChunkRepository = documentChunkRepository;
             _logger = logger;
             _storageProvider = storageProvider;
+            _chunkingConfigService = chunkingConfigService;
         }
 
         public async Task<Result> ProcessFileChunkingAsync(Guid documentId, CancellationToken cancellationToken)
@@ -63,8 +66,12 @@ namespace BLL.Services
                     return Result.Success();
                 }
 
+                // Get chunking configuration dynamically
+                var config = await _chunkingConfigService.GetConfigAsync();
+
                 // Chunk the text
-                var chunks = ChunkText(fileContent, chunkSize: 500, overlap: 50, document.Id, document.SubjectId).ToList();
+                string extension = Path.GetExtension(document.FileName).ToLowerInvariant();
+                var chunks = ChunkText(fileContent, config.Method, config.ChunkSize, config.OverlapSize, document.Id, document.SubjectId, extension).ToList();
 
                 if (chunks.Any())
                 {
@@ -141,17 +148,45 @@ namespace BLL.Services
         /// <param name="documentId">The ID of the document being chunked.</param>
         /// <param name="subjectId">The Subject ID for RAG filtering.</param>
         /// <returns>An enumerable of DocumentChunk entities.</returns>
-        private IEnumerable<DocumentChunk> ChunkText(Microsoft.KernelMemory.DataFormats.FileContent fileContent, int chunkSize, int overlap, Guid documentId, Guid? subjectId)
+        private IEnumerable<DocumentChunk> ChunkText(
+            Microsoft.KernelMemory.DataFormats.FileContent fileContent, 
+            string method,
+            int chunkSize, 
+            int overlap, 
+            Guid documentId, 
+            Guid? subjectId,
+            string extension)
         {
             int index = 0;
             foreach (var section in fileContent.Sections)
             {
                 if (string.IsNullOrWhiteSpace(section.Content)) continue;
 
-                var lines = TextChunker.SplitPlainTextLines(section.Content, maxTokensPerLine: 100);
-                var paragraphs = TextChunker.SplitPlainTextParagraphs(lines, maxTokensPerParagraph: chunkSize, overlapTokens: overlap);
+                IEnumerable<string> chunkTexts;
+                if (string.Equals(method, "Word", StringComparison.OrdinalIgnoreCase))
+                {
+                    chunkTexts = ChunkByWords(section.Content, chunkSize, overlap);
+                }
+                else if (string.Equals(method, "Character", StringComparison.OrdinalIgnoreCase))
+                {
+                    chunkTexts = ChunkByCharacters(section.Content, chunkSize, overlap);
+                }
+                else
+                {
+                    // Paragraph: split lines, then group to paragraphs using SK
+                    if (string.Equals(extension, ".md", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var lines = TextChunker.SplitMarkDownLines(section.Content, maxTokensPerLine: 100);
+                        chunkTexts = TextChunker.SplitMarkdownParagraphs(lines, maxTokensPerParagraph: chunkSize, overlapTokens: overlap);
+                    }
+                    else
+                    {
+                        var lines = TextChunker.SplitPlainTextLines(section.Content, maxTokensPerLine: 100);
+                        chunkTexts = TextChunker.SplitPlainTextParagraphs(lines, maxTokensPerParagraph: chunkSize, overlapTokens: overlap);
+                    }
+                }
 
-                foreach (var p in paragraphs)
+                foreach (var p in chunkTexts)
                 {
                     yield return new DocumentChunk
                     {
@@ -165,6 +200,47 @@ namespace BLL.Services
                         CreatedAt = DateTime.UtcNow
                     };
                 }
+            }
+        }
+
+        private IEnumerable<string> ChunkByWords(string text, int chunkSize, int overlapSize)
+        {
+            if (string.IsNullOrWhiteSpace(text)) yield break;
+            var words = text.Split(new[] { ' ', '\r', '\n', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+            if (words.Length == 0) yield break;
+
+            if (chunkSize <= 0) chunkSize = 150;
+            if (overlapSize < 0 || overlapSize >= chunkSize) overlapSize = chunkSize / 10;
+
+            int step = chunkSize - overlapSize;
+            if (step <= 0) step = 1;
+
+            for (int i = 0; i < words.Length; i += step)
+            {
+                var chunkWords = System.Linq.Enumerable.ToList(System.Linq.Enumerable.Take(System.Linq.Enumerable.Skip(words, i), chunkSize));
+                if (chunkWords.Count == 0) break;
+                yield return string.Join(" ", chunkWords);
+                if (i + chunkSize >= words.Length) break;
+            }
+        }
+
+        private IEnumerable<string> ChunkByCharacters(string text, int chunkSize, int overlapSize)
+        {
+            if (string.IsNullOrWhiteSpace(text)) yield break;
+            if (chunkSize <= 0) chunkSize = 500;
+            if (overlapSize < 0 || overlapSize >= chunkSize) overlapSize = chunkSize / 10;
+
+            int step = chunkSize - overlapSize;
+            if (step <= 0) step = 1;
+
+            for (int i = 0; i < text.Length; i += step)
+            {
+                if (i + chunkSize >= text.Length)
+                {
+                    yield return text.Substring(i);
+                    break;
+                }
+                yield return text.Substring(i, chunkSize);
             }
         }
     }

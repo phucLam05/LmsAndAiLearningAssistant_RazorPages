@@ -15,17 +15,20 @@ namespace BLL.Services
         private readonly IDocumentRepository _documentRepository;
         private readonly IDocumentChunkRepository _documentChunkRepository;
         private readonly IGeminiEmbeddingProvider _geminiProvider;
+        private readonly IDocumentProgressNotifier _progressNotifier;
         private readonly ILogger<DocumentEmbeddingService> _logger;
 
         public DocumentEmbeddingService(
             IDocumentRepository documentRepository,
             IDocumentChunkRepository documentChunkRepository,
             IGeminiEmbeddingProvider geminiProvider,
+            IDocumentProgressNotifier progressNotifier,
             ILogger<DocumentEmbeddingService> logger)
         {
             _documentRepository = documentRepository;
             _documentChunkRepository = documentChunkRepository;
             _geminiProvider = geminiProvider;
+            _progressNotifier = progressNotifier;
             _logger = logger;
         }
 
@@ -64,6 +67,9 @@ namespace BLL.Services
                 var chunksToProcess = chunks.Where(c => c.Embedding == null).ToList();
                 _logger.LogInformation("Found {TotalChunks} chunks, {PendingChunks} need embeddings.", chunks.Count, chunksToProcess.Count);
 
+                int initialProcessed = chunks.Count - chunksToProcess.Count;
+                await _progressNotifier.NotifyProgressAsync(documentId, "Processing", initialProcessed, chunks.Count);
+
                 const int batchSize = 10;
                 var batch = new List<DocumentChunk>();
 
@@ -80,16 +86,23 @@ namespace BLL.Services
                     {
                         await _documentChunkRepository.UpdateChunksAsync(batch);
                         batch.Clear();
+
+                        int processedCount = chunks.Count(c => c.Embedding != null);
+                        await _progressNotifier.NotifyProgressAsync(documentId, "Processing", processedCount, chunks.Count);
                     }
                 }
 
                 if (batch.Any())
                 {
                     await _documentChunkRepository.UpdateChunksAsync(batch);
+
+                    int processedCount = chunks.Count(c => c.Embedding != null);
+                    await _progressNotifier.NotifyProgressAsync(documentId, "Processing", processedCount, chunks.Count);
                 }
 
                 // 4. Update status to Success
                 await _documentRepository.UpdateStatusAsync(documentId, DocumentStatus.Success);
+                await _progressNotifier.NotifyProgressAsync(documentId, "Success", chunks.Count, chunks.Count);
                 _logger.LogInformation("Successfully completed embedding process for DocumentId: {DocumentId}", documentId);
                 
                 return Result.Success();
@@ -101,6 +114,7 @@ namespace BLL.Services
                 _documentRepository.ClearTracker();
                 // If it fails, update status to Failed so the user can see it
                 await _documentRepository.UpdateStatusAsync(documentId, DocumentStatus.Failed);
+                await _progressNotifier.NotifyProgressAsync(documentId, "Failed", 0, 0);
                 return Result.Failure($"Embedding error: {ex.Message}");
             }
         }

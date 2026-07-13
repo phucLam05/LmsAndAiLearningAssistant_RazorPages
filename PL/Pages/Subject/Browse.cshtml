@@ -80,11 +80,12 @@ else
                     <span class="truncate">@(subject.LecturerName ?? "Chưa phân công")</span>
                 </div>
                 <div class="flex gap-2 mt-auto pt-3 border-t border-outline-variant/20">
-                    <a asp-page="/Subject/Chat" asp-route-subjectId="@subject.Id" class="flex-1 bg-primary/10 hover:bg-primary text-primary hover:text-on-primary text-center font-label-md text-xs font-bold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2">
-                        <span class="material-symbols-outlined text-[16px]">chat</span> Trò chuyện
+                    <a asp-page="/Subject/Chat" asp-route-subjectId="@subject.Id" class="flex-1 bg-primary/10 hover:bg-primary text-primary hover:text-on-primary text-center font-label-md text-xs font-bold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-1.5">
+                        <span class="material-symbols-outlined text-[16px] !leading-none align-middle">chat</span>
+                        <span class="align-middle">Trò chuyện</span>
                     </a>
-                    <a asp-page="/Subject/Details" asp-route-id="@subject.Id" class="px-3 bg-surface border border-outline-variant hover:bg-surface-container-high rounded-lg text-on-surface transition-colors" title="Xem chi tiết">
-                        <span class="material-symbols-outlined text-[16px]">visibility</span>
+                    <a asp-page="/Subject/Details" asp-route-id="@subject.Id" class="px-3 bg-surface border border-outline-variant hover:bg-surface-container-high rounded-lg text-on-surface transition-colors flex items-center justify-center" title="Xem chi tiết">
+                        <span class="material-symbols-outlined text-[16px] !leading-none align-middle">visibility</span>
                     </a>
                 </div>
             </div>
