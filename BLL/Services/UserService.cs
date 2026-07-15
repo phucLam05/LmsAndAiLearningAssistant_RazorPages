@@ -364,5 +364,55 @@ namespace BLL.Services
                 return Convert.ToBase64String(resultBytes);
             }
         }
+        public async Task<Result<string>> GetUserCodeAsync(Guid userId)
+        {
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user == null) return Result<string>.Failure("Không tìm thấy người dùng.");
+            return Result<string>.Success(user.UserCode);
+        }
+
+        public async Task<Result> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword)
+        {
+            if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)
+                return Result.Failure("Mật khẩu mới phải có ít nhất 6 ký tự.");
+
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user == null) return Result.Failure("Không tìm thấy người dùng.");
+
+            if (string.IsNullOrEmpty(currentPassword) || !BCrypt.Net.BCrypt.Verify(currentPassword, user.PasswordHash))
+                return Result.Failure("Mật khẩu hiện tại không chính xác.");
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            user.UpdatedAt = DateTime.UtcNow;
+            await _userRepository.UpdateAsync(user);
+            return Result.Success();
+        }
+
+        public async Task<Result> ActivateAndChangePasswordAsync(Guid userId, string? currentPassword, string newPassword)
+        {
+            if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)
+                return Result.Failure("Mật khẩu mới phải có ít nhất 6 ký tự.");
+
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user == null) return Result.Failure("Không tìm thấy tài khoản.");
+
+            if (!string.IsNullOrEmpty(currentPassword) && !BCrypt.Net.BCrypt.Verify(currentPassword, user.PasswordHash))
+                return Result.Failure("Mật khẩu tạm thời không chính xác.");
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            user.Status = UserStatus.Active;
+            user.UpdatedAt = DateTime.UtcNow;
+            await _userRepository.UpdateAsync(user);
+            return Result.Success();
+        }
+
+        public async Task<IReadOnlyList<User>> GetLecturersAsync()
+        {
+            var all = await _userRepository.GetAllUsersAsync();
+            return all
+                .Where(u => u.Role == UserRole.Lecturer)
+                .OrderBy(u => u.FullName)
+                .ToList();
+        }
     }
 }

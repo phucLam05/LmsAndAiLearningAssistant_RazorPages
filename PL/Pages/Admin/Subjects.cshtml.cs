@@ -1,8 +1,7 @@
-﻿using BLL.Interfaces;
+using BLL.Interfaces;
 using Core.DTOs.Common;
 using Core.DTOs.Subject;
 using Core.Entities;
-using DAL.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -13,11 +12,11 @@ namespace PL.Pages.Admin
     public class SubjectsModel : PageModel
     {
         private readonly ISubjectService _subjectService;
-        private readonly IUserRepository _userRepository;
-        public SubjectsModel(ISubjectService subjectService, IUserRepository userRepository)
+        private readonly IUserService _userService;
+        public SubjectsModel(ISubjectService subjectService, IUserService userService)
         {
             _subjectService = subjectService;
-            _userRepository = userRepository;
+            _userService = userService;
         }
 
         public PagedResult<SubjectDto> Paged { get; set; } = new();
@@ -98,10 +97,7 @@ namespace PL.Pages.Admin
             };
 
             // Lecturers for the assignment dropdown
-            Lecturers = (await _userRepository.GetAllUsersAsync())
-                .Where(u => u.Role == UserRole.Lecturer)
-                .OrderBy(u => u.FullName)
-                .ToList();
+            Lecturers = await _userService.GetLecturersAsync();
         }
     }
 }
