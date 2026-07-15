@@ -1,0 +1,5 @@
+{
+  "Method": "Paragraph",
+  "ChunkSize": 500,
+  "OverlapSize": 50
+}

@@ -279,16 +279,16 @@
         </div>
         @if (Model.Stats.SubjectDetailStats.Any())
         {
-            <div class="overflow-x-auto rounded-lg border border-outline-variant/20">
+            <div class="overflow-x-auto overflow-y-auto max-h-[400px] rounded-lg border border-outline-variant/20 scroll-smooth">
                 <table class="w-full text-xs">
                     <thead>
-                        <tr class="bg-surface-container border-b border-outline-variant/20 select-none">
-                            <th class="text-left px-3 py-2.5 font-bold text-on-surface-variant uppercase tracking-wide text-[10px]">Môn học</th>
-                            <th class="text-center px-3 py-2.5 font-bold text-on-surface-variant uppercase tracking-wide text-[10px]">Tài liệu</th>
-                            <th class="text-center px-3 py-2.5 font-bold text-on-surface-variant uppercase tracking-wide text-[10px]">Sessions</th>
-                            <th class="text-center px-3 py-2.5 font-bold text-on-surface-variant uppercase tracking-wide text-[10px]">Tin nhắn</th>
-                            <th class="text-center px-3 py-2.5 font-bold text-on-surface-variant uppercase tracking-wide text-[10px]">Tokens</th>
-                            <th class="text-right px-3 py-2.5 font-bold text-on-surface-variant uppercase tracking-wide text-[10px]">Dung lượng</th>
+                        <tr class="bg-surface-container border-b border-outline-variant/20 select-none sticky top-0 z-10">
+                            <th class="text-left px-3 py-2.5 font-bold text-on-surface-variant uppercase tracking-wide text-[10px] bg-surface-container">Môn học</th>
+                            <th class="text-center px-3 py-2.5 font-bold text-on-surface-variant uppercase tracking-wide text-[10px] bg-surface-container">Tài liệu</th>
+                            <th class="text-center px-3 py-2.5 font-bold text-on-surface-variant uppercase tracking-wide text-[10px] bg-surface-container">Sessions</th>
+                            <th class="text-center px-3 py-2.5 font-bold text-on-surface-variant uppercase tracking-wide text-[10px] bg-surface-container">Tin nhắn</th>
+                            <th class="text-center px-3 py-2.5 font-bold text-on-surface-variant uppercase tracking-wide text-[10px] bg-surface-container">Tokens</th>
+                            <th class="text-right px-3 py-2.5 font-bold text-on-surface-variant uppercase tracking-wide text-[10px] bg-surface-container">Dung lượng</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-outline-variant/10">
