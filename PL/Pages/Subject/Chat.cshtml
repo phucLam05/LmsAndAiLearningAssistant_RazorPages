@@ -350,9 +350,12 @@
             const sFileName = source.fileName || source.FileName || 'Tài liệu';
             const sPageNumber = source.pageNumber !== undefined ? source.pageNumber : source.PageNumber;
             const sContent = source.content || source.Content || '';
+            
+            const isPdf = sFileName.toLowerCase().endsWith('.pdf');
+            
             document.getElementById('popoverIndex').textContent = sIdx;
             document.getElementById('popoverFileName').textContent = sFileName;
-            document.getElementById('popoverPageNumber').textContent = sPageNumber ? `Trang ${sPageNumber}` : 'Tài liệu';
+            document.getElementById('popoverPageNumber').textContent = (isPdf && sPageNumber) ? `Trang ${sPageNumber}` : 'Tài liệu';
             document.getElementById('popoverContent').textContent = sContent;
             popover.classList.remove('hidden');
             const rect = element.getBoundingClientRect();
@@ -411,7 +414,8 @@
                 const sDocumentId = s.documentId || s.DocumentId || '';
 
                 const ext = (sFileName.split('.').pop() || '').toLowerCase();
-                const icon = ext === 'pdf' ? 'picture_as_pdf'
+                const isPdf = ext === 'pdf';
+                const icon = isPdf ? 'picture_as_pdf'
                     : (ext === 'docx' || ext === 'doc') ? 'description'
                     : (ext === 'pptx' || ext === 'ppt') ? 'slideshow'
                     : (ext === 'xlsx' || ext === 'xls') ? 'table_chart' : 'text_snippet';
@@ -425,7 +429,7 @@
                             <span class="material-symbols-outlined text-[14px] text-on-surface-variant">${icon}</span>
                             <span class="text-[11px] font-semibold text-on-surface truncate" title="${escapeHtml(sFileName)}">${escapeHtml(sFileName)}</span>
                         </div>
-                        ${sPageNumber ? `<p class="text-[10px] text-outline mt-0.5">Trang ${sPageNumber}</p>` : `<p class="text-[10px] text-outline mt-0.5">Bấm để mở tài liệu</p>`}
+                        ${(isPdf && sPageNumber) ? `<p class="text-[10px] text-outline mt-0.5">Trang ${sPageNumber}</p>` : `<p class="text-[10px] text-outline mt-0.5">Bấm để mở tài liệu</p>`}
                         <p class="text-[10px] text-on-surface-variant mt-1 line-clamp-2">${escapeHtml(sContent).slice(0, 160)}...</p>
                     </div>
                     <span class="material-symbols-outlined text-[14px] text-outline">open_in_new</span>

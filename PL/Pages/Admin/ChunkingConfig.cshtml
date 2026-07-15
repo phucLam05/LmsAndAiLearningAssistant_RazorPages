@@ -4,9 +4,20 @@
     ViewData["Title"] = "Cấu hình Chunking - LMS AI";
 }
 
-<div class="font-sans max-w-5xl mx-auto space-y-8 select-none py-4 animate-fade-in">
+<div class="font-sans max-w-5xl mx-auto space-y-6 select-none py-2 animate-fade-in">
+    <!-- Navigation row and Breadcrumbs -->
+    <div class="flex items-center justify-between px-1">
+        <div class="flex items-center gap-3">
+            <a href="/Admin/Index" class="inline-flex items-center gap-1.5 text-on-surface-variant hover:text-primary text-xs font-bold transition-all hover:-translate-x-0.5 duration-200">
+                <span class="material-symbols-outlined text-[16px]">arrow_back</span> Dashboard
+            </a>
+            <span class="text-outline-variant/50">/</span>
+            <span class="text-xs text-outline font-medium">Cấu hình Chunking</span>
+        </div>
+    </div>
+
     <!-- Header Section with Glassmorphism and Gradients -->
-    <div class="relative bg-surface-container-low border border-outline-variant/30 rounded-3xl p-6 sm:p-8 overflow-hidden shadow-lg">
+    <div class="relative bg-surface-container-low border border-outline-variant/30 rounded-3xl p-6 sm:p-8 overflow-hidden shadow-xl">
         <div class="absolute -top-24 -left-24 w-48 h-48 bg-primary/10 rounded-full blur-3xl"></div>
         <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-tertiary/10 rounded-full blur-3xl"></div>
         
@@ -15,10 +26,10 @@
                 <span class="material-symbols-outlined text-[32px] animate-pulse">settings_suggest</span>
             </div>
             <div class="space-y-1">
-                <h1 class="font-headline-lg text-2xl sm:text-3xl font-extrabold tracking-tight bg-gradient-to-r from-primary via-secondary to-tertiary bg-clip-text text-transparent">
+                <h1 class="font-headline-lg text-xl sm:text-2xl font-extrabold tracking-tight bg-gradient-to-r from-primary via-secondary to-tertiary bg-clip-text text-transparent">
                     Cấu hình Chunking Hệ thống
                 </h1>
-                <p class="text-xs sm:text-sm text-on-surface-variant font-medium max-w-2xl leading-relaxed">
+                <p class="text-xs text-on-surface-variant font-medium max-w-2xl leading-relaxed">
                     Điều chỉnh thuật toán phân tách văn bản thông minh. Chunking chuẩn xác giúp mô hình AI dễ dàng truy xuất thông tin ngữ nghĩa và trả lời chính xác hơn.
                 </p>
             </div>
@@ -29,60 +40,60 @@
         @Html.AntiForgeryToken()
 
         <!-- Method Selector -->
-        <div class="bg-surface-container-low border border-outline-variant/30 rounded-3xl p-6 sm:p-8 shadow-md">
-            <div class="flex items-center gap-2 mb-6">
+        <div class="bg-surface-container-low border border-outline-variant/30 rounded-3xl p-6 sm:p-8 shadow-xl">
+            <div class="flex items-center gap-2 mb-6 pb-2 border-b border-outline-variant/20">
                 <span class="material-symbols-outlined text-primary text-[20px]">layers</span>
-                <h3 class="font-headline-sm text-base sm:text-lg font-bold text-on-surface">Phương pháp phân tách (Chunking Method)</h3>
+                <h3 class="font-headline-sm text-sm sm:text-base font-bold text-on-surface">Phương pháp phân tách (Chunking Method)</h3>
             </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="methodGrid">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5" id="methodGrid">
                 <!-- Option 1: Paragraph -->
-                <label class="relative flex flex-col p-5 bg-surface border-2 border-outline-variant/40 hover:border-primary/40 rounded-2xl cursor-pointer transition-all duration-300 select-none group hover:shadow-md hover:scale-[1.01]">
+                <label class="relative flex flex-col p-5 bg-surface-container-lowest border-2 border-outline-variant/30 hover:border-primary/40 rounded-2xl cursor-pointer transition-all duration-300 select-none group hover:shadow-md hover:scale-[1.01]">
                     <input type="radio" asp-for="Config.Method" value="Paragraph" class="sr-only" id="radioParagraph" />
                     
                     <div class="flex items-center justify-between mb-4">
                         <span class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center group-hover:scale-110 transition-transform">
-                            <span class="material-symbols-outlined text-[22px] filled">segment</span>
+                            <span class="material-symbols-outlined text-[20px] filled">segment</span>
                         </span>
-                        <span class="material-symbols-outlined text-primary text-[24px] opacity-0 scale-75 group-[.selected]:opacity-100 group-[.selected]:scale-100 transition-all duration-300 check-icon">check_circle</span>
+                        <span class="material-symbols-outlined text-primary text-[22px] opacity-0 scale-75 group-[.selected]:opacity-100 group-[.selected]:scale-100 transition-all duration-300 check-icon">check_circle</span>
                     </div>
                     
-                    <span class="font-bold text-on-surface text-sm block">Paragraph (Đoạn văn)</span>
-                    <span class="text-xs text-outline mt-2 leading-relaxed font-medium">
+                    <span class="font-bold text-on-surface text-xs block">Paragraph (Đoạn văn)</span>
+                    <span class="text-[11px] text-outline mt-2 leading-relaxed font-medium">
                         Phân tách dựa trên cấu trúc đoạn văn bản tự nhiên (\n\n). Khuyến nghị sử dụng để giữ nguyên cấu trúc ngữ nghĩa liền mạch.
                     </span>
                 </label>
 
                 <!-- Option 2: Word -->
-                <label class="relative flex flex-col p-5 bg-surface border-2 border-outline-variant/40 hover:border-primary/40 rounded-2xl cursor-pointer transition-all duration-300 select-none group hover:shadow-md hover:scale-[1.01]">
+                <label class="relative flex flex-col p-5 bg-surface-container-lowest border-2 border-outline-variant/30 hover:border-primary/40 rounded-2xl cursor-pointer transition-all duration-300 select-none group hover:shadow-md hover:scale-[1.01]">
                     <input type="radio" asp-for="Config.Method" value="Word" class="sr-only" id="radioWord" />
                     
                     <div class="flex items-center justify-between mb-4">
                         <span class="w-10 h-10 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center group-hover:scale-110 transition-transform">
-                            <span class="material-symbols-outlined text-[22px] filled">format_align_left</span>
+                            <span class="material-symbols-outlined text-[20px] filled">format_align_left</span>
                         </span>
-                        <span class="material-symbols-outlined text-primary text-[24px] opacity-0 scale-75 group-[.selected]:opacity-100 group-[.selected]:scale-100 transition-all duration-300 check-icon">check_circle</span>
+                        <span class="material-symbols-outlined text-primary text-[22px] opacity-0 scale-75 group-[.selected]:opacity-100 group-[.selected]:scale-100 transition-all duration-300 check-icon">check_circle</span>
                     </div>
                     
-                    <span class="font-bold text-on-surface text-sm block">Word (Số từ)</span>
-                    <span class="text-xs text-outline mt-2 leading-relaxed font-medium">
+                    <span class="font-bold text-on-surface text-xs block">Word (Số từ)</span>
+                    <span class="text-[11px] text-outline mt-2 leading-relaxed font-medium">
                         Phân tách theo số lượng từ cố định. Đảm bảo dung lượng các khối dữ liệu bằng nhau tuyệt đối theo đơn vị từ vựng.
                     </span>
                 </label>
 
                 <!-- Option 3: Character -->
-                <label class="relative flex flex-col p-5 bg-surface border-2 border-outline-variant/40 hover:border-primary/40 rounded-2xl cursor-pointer transition-all duration-300 select-none group hover:shadow-md hover:scale-[1.01]">
+                <label class="relative flex flex-col p-5 bg-surface-container-lowest border-2 border-outline-variant/30 hover:border-primary/40 rounded-2xl cursor-pointer transition-all duration-300 select-none group hover:shadow-md hover:scale-[1.01]">
                     <input type="radio" asp-for="Config.Method" value="Character" class="sr-only" id="radioCharacter" />
                     
                     <div class="flex items-center justify-between mb-4">
                         <span class="w-10 h-10 rounded-xl bg-tertiary/10 text-tertiary flex items-center justify-center group-hover:scale-110 transition-transform">
-                            <span class="material-symbols-outlined text-[22px] filled">match_word</span>
+                            <span class="material-symbols-outlined text-[20px] filled">match_word</span>
                         </span>
-                        <span class="material-symbols-outlined text-primary text-[24px] opacity-0 scale-75 group-[.selected]:opacity-100 group-[.selected]:scale-100 transition-all duration-300 check-icon">check_circle</span>
+                        <span class="material-symbols-outlined text-primary text-[22px] opacity-0 scale-75 group-[.selected]:opacity-100 group-[.selected]:scale-100 transition-all duration-300 check-icon">check_circle</span>
                     </div>
                     
-                    <span class="font-bold text-on-surface text-sm block">Character (Ký tự)</span>
-                    <span class="text-xs text-outline mt-2 leading-relaxed font-medium">
+                    <span class="font-bold text-on-surface text-xs block">Character (Ký tự)</span>
+                    <span class="text-[11px] text-outline mt-2 leading-relaxed font-medium">
                         Phân tách chuẩn xác theo giới hạn số lượng ký tự chữ cái. Thích hợp cho các cấu trúc văn bản đặc biệt cần xử lý độ dài thô.
                     </span>
                 </label>
@@ -93,43 +104,43 @@
         <!-- Size parameters and live visualizer -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Parameter Inputs Card -->
-            <div class="lg:col-span-2 bg-surface-container-low border border-outline-variant/30 rounded-3xl p-6 sm:p-8 shadow-md space-y-6">
-                <div class="flex items-center gap-2 mb-2">
+            <div class="lg:col-span-2 bg-surface-container-low border border-outline-variant/30 rounded-3xl p-6 sm:p-8 shadow-xl space-y-6">
+                <div class="flex items-center gap-2 mb-2 pb-2 border-b border-outline-variant/20">
                     <span class="material-symbols-outlined text-primary text-[20px]">tune</span>
-                    <h3 class="font-headline-sm text-base sm:text-lg font-bold text-on-surface">Tham số phân đoạn</h3>
+                    <h3 class="font-headline-sm text-sm sm:text-base font-bold text-on-surface">Tham số phân đoạn</h3>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div class="space-y-2">
-                        <label class="block font-bold text-on-surface text-xs tracking-wide uppercase" asp-for="Config.ChunkSize">Kích thước Chunk (Chunk Size)</label>
+                        <label class="block font-bold text-on-surface text-[10px] tracking-wide uppercase" asp-for="Config.ChunkSize">Kích thước Chunk (Chunk Size)</label>
                         <div class="relative group">
-                            <input type="number" asp-for="Config.ChunkSize" id="inputChunkSize" class="w-full bg-surface-container-high border-2 border-outline-variant/40 text-on-surface rounded-xl pl-4 pr-16 py-3.5 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all text-sm font-bold text-white shadow-inner" placeholder="VD: 500" />
+                            <input type="number" asp-for="Config.ChunkSize" id="inputChunkSize" class="w-full bg-surface-container-high border-2 border-outline-variant/40 text-on-surface rounded-xl pl-4 pr-16 py-3.5 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all text-xs font-bold text-white shadow-inner" placeholder="VD: 500" />
                             <span class="absolute inset-y-0 right-4 flex items-center text-xs text-primary font-bold uppercase select-none tracking-wider transition-colors group-focus-within:text-primary" id="sizeUnit">tokens</span>
                         </div>
                         <span asp-validation-for="Config.ChunkSize" class="text-error text-xs mt-1 block font-medium"></span>
-                        <p class="text-[11px] text-outline leading-relaxed font-medium" id="sizeHelp">Kích thước tối đa của một đoạn cắt văn bản.</p>
+                        <p class="text-[10px] text-outline leading-relaxed font-semibold" id="sizeHelp">Kích thước tối đa của một đoạn cắt văn bản.</p>
                     </div>
 
                     <div class="space-y-2">
-                        <label class="block font-bold text-on-surface text-xs tracking-wide uppercase" asp-for="Config.OverlapSize">Độ chồng lặp (Overlap Size)</label>
+                        <label class="block font-bold text-on-surface text-[10px] tracking-wide uppercase" asp-for="Config.OverlapSize">Độ chồng lặp (Overlap Size)</label>
                         <div class="relative group">
-                            <input type="number" asp-for="Config.OverlapSize" id="inputOverlapSize" class="w-full bg-surface-container-high border-2 border-outline-variant/40 text-on-surface rounded-xl pl-4 pr-16 py-3.5 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all text-sm font-bold text-white shadow-inner" placeholder="VD: 50" />
+                            <input type="number" asp-for="Config.OverlapSize" id="inputOverlapSize" class="w-full bg-surface-container-high border-2 border-outline-variant/40 text-on-surface rounded-xl pl-4 pr-16 py-3.5 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all text-xs font-bold text-white shadow-inner" placeholder="VD: 50" />
                             <span class="absolute inset-y-0 right-4 flex items-center text-xs text-primary font-bold uppercase select-none tracking-wider transition-colors group-focus-within:text-primary" id="overlapUnit">tokens</span>
                         </div>
                         <span asp-validation-for="Config.OverlapSize" class="text-error text-xs mt-1 block font-medium"></span>
-                        <p class="text-[11px] text-outline leading-relaxed font-medium" id="overlapHelp">Phần trùng lặp giữa 2 đoạn chunk liền nhau để giữ ngữ cảnh.</p>
+                        <p class="text-[10px] text-outline leading-relaxed font-semibold" id="overlapHelp">Phần trùng lặp giữa 2 đoạn chunk liền nhau để giữ ngữ cảnh.</p>
                     </div>
                 </div>
             </div>
 
             <!-- Live Preview / Visualizer Card -->
-            <div class="bg-surface-container-low border border-outline-variant/30 rounded-3xl p-6 shadow-md flex flex-col justify-between space-y-6">
+            <div class="bg-surface-container-low border border-outline-variant/30 rounded-3xl p-6 shadow-xl flex flex-col justify-between space-y-6">
                 <div>
-                    <div class="flex items-center gap-2 mb-4">
+                    <div class="flex items-center gap-2 mb-2 pb-2 border-b border-outline-variant/20">
                         <span class="material-symbols-outlined text-primary text-[20px]">preview</span>
-                        <h3 class="font-headline-sm text-base font-bold text-on-surface">Mô phỏng & Chỉnh nhanh</h3>
+                        <h3 class="font-headline-sm text-sm font-bold text-on-surface">Mô phỏng & Chỉnh nhanh</h3>
                     </div>
-                    <p class="text-[11px] text-on-surface-variant leading-relaxed mb-6 font-medium">
+                    <p class="text-[10px] text-on-surface-variant leading-relaxed mb-4 font-semibold">
                         Biểu diễn tỷ lệ chồng lặp (Overlap). Bạn có thể **kéo thanh trượt bên dưới** để cập nhật nhanh thông số.
                     </p>
 
@@ -141,7 +152,7 @@
                                 <span>Chunk 1</span>
                                 <span id="labelC1">0 - 500</span>
                             </div>
-                            <div class="w-full bg-surface rounded-lg h-5 overflow-hidden border border-outline-variant/20 relative shadow-inner">
+                            <div class="w-full bg-surface-container-high rounded-lg h-5 overflow-hidden border border-outline-variant/20 relative shadow-inner">
                                 <div class="bg-gradient-to-r from-primary/40 to-primary/80 h-full rounded-lg" style="width: 100%"></div>
                             </div>
                         </div>
@@ -152,10 +163,10 @@
                                 <span>Chunk 2</span>
                                 <span id="labelC2">450 - 950</span>
                             </div>
-                            <div class="w-full bg-surface rounded-lg h-5 overflow-hidden border border-outline-variant/20 relative shadow-inner">
+                            <div class="w-full bg-surface-container-high rounded-lg h-5 overflow-hidden border border-outline-variant/20 relative shadow-inner">
                                 <div class="bg-gradient-to-r from-secondary/40 to-secondary/80 h-full rounded-lg transition-all duration-300" id="barC2" style="width: 100%; margin-left: 0%"></div>
                                 <!-- Overlap Area Shadow -->
-                                <div class="absolute top-0 bottom-0 bg-yellow-500/25 border-l border-r border-yellow-500/50 transition-all duration-300" id="overlapBar1" style="left: 0%; width: 10%"></div>
+                                <div class="absolute top-0 bottom-0 bg-yellow-500/20 border-l border-r border-yellow-500/40 transition-all duration-300" id="overlapBar1" style="left: 0%; width: 10%"></div>
                             </div>
                         </div>
 
@@ -165,9 +176,9 @@
                                 <span>Chunk 3</span>
                                 <span id="labelC3">900 - 1400</span>
                             </div>
-                            <div class="w-full bg-surface rounded-lg h-5 overflow-hidden border border-outline-variant/20 relative shadow-inner">
+                            <div class="w-full bg-surface-container-high rounded-lg h-5 overflow-hidden border border-outline-variant/20 relative shadow-inner">
                                 <div class="bg-gradient-to-r from-tertiary/40 to-tertiary/80 h-full rounded-lg transition-all duration-300" id="barC3" style="width: 100%; margin-left: 0%"></div>
-                                <div class="absolute top-0 bottom-0 bg-yellow-500/25 border-l border-r border-yellow-500/50 transition-all duration-300" id="overlapBar2" style="left: 0%; width: 10%"></div>
+                                <div class="absolute top-0 bottom-0 bg-yellow-500/20 border-l border-r border-yellow-500/40 transition-all duration-300" id="overlapBar2" style="left: 0%; width: 10%"></div>
                             </div>
                         </div>
                     </div>
@@ -175,33 +186,33 @@
                     <!-- Interactive Range Sliders -->
                     <div class="space-y-4 pt-4 border-t border-outline-variant/20">
                         <div class="space-y-1.5">
-                            <div class="flex justify-between text-[11px] font-bold text-on-surface">
+                            <div class="flex justify-between text-[10px] font-bold text-on-surface">
                                 <span>Kéo chỉnh Chunk Size</span>
                                 <span class="text-primary font-mono font-bold" id="sliderSizeVal">500</span>
                             </div>
-                            <input type="range" id="sliderChunkSize" min="100" max="2000" step="50" value="500" class="w-full accent-primary h-1.5 bg-surface rounded-lg appearance-none cursor-pointer border border-outline-variant/20 shadow-inner" />
+                            <input type="range" id="sliderChunkSize" min="100" max="2000" step="50" value="500" class="w-full accent-primary h-1 bg-surface-container-high rounded-lg appearance-none cursor-pointer border border-outline-variant/20 shadow-inner" />
                         </div>
                         <div class="space-y-1.5">
-                            <div class="flex justify-between text-[11px] font-bold text-on-surface">
+                            <div class="flex justify-between text-[10px] font-bold text-on-surface">
                                 <span>Kéo chỉnh Overlap Size</span>
                                 <span class="text-secondary font-mono font-bold" id="sliderOverlapVal">50</span>
                             </div>
-                            <input type="range" id="sliderOverlapSize" min="0" max="500" step="10" value="50" class="w-full accent-secondary h-1.5 bg-surface rounded-lg appearance-none cursor-pointer border border-outline-variant/20 shadow-inner" />
+                            <input type="range" id="sliderOverlapSize" min="0" max="500" step="10" value="50" class="w-full accent-secondary h-1 bg-surface-container-high rounded-lg appearance-none cursor-pointer border border-outline-variant/20 shadow-inner" />
                         </div>
                     </div>
                 </div>
 
-                <div class="mt-6 pt-4 border-t border-outline-variant/20 flex items-center justify-between text-[10px] text-outline font-semibold select-none">
-                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 bg-primary/80 rounded"></span> Chunk gốc</span>
-                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 bg-yellow-500/30 border border-yellow-500/50 rounded"></span> Khớp đè (Overlap)</span>
+                <div class="mt-6 pt-4 border-t border-outline-variant/20 flex items-center justify-between text-[9px] text-outline font-semibold select-none">
+                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 bg-primary/80 rounded"></span> Chunk gốc</span>
+                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 bg-yellow-500/20 border border-yellow-500/40 rounded"></span> Khớp đè (Overlap)</span>
                 </div>
             </div>
         </div>
 
         <!-- Submit Button Row -->
         <div class="flex justify-end pt-2">
-            <button type="submit" class="bg-gradient-to-r from-primary to-secondary text-on-primary hover:from-primary-fixed hover:to-secondary-fixed transition-all font-bold px-8 py-4 rounded-2xl text-sm flex items-center gap-2 cursor-pointer shadow-lg hover:shadow-primary/20 hover:scale-[1.02] active:scale-[0.99] duration-200">
-                <span class="material-symbols-outlined text-[20px] font-bold">save</span> Lưu và Áp dụng Cấu hình
+            <button type="submit" class="bg-gradient-to-r from-primary to-secondary text-on-primary hover:from-primary-fixed hover:to-secondary-fixed transition-all font-bold px-8 py-4 rounded-2xl text-xs flex items-center gap-2 cursor-pointer shadow-lg hover:shadow-primary/20 hover:scale-[1.02] active:scale-[0.99] duration-200">
+                <span class="material-symbols-outlined text-[18px] font-bold">save</span> Lưu và Áp dụng Cấu hình
             </button>
         </div>
     </form>
@@ -302,7 +313,7 @@
                     const label = input.closest('label');
                     if (input.checked) {
                         label.classList.add('selected', 'border-primary', 'bg-primary/5', 'ring-2', 'ring-primary/25');
-                        label.classList.remove('border-outline-variant/40');
+                        label.classList.remove('border-outline-variant/30');
                         
                         const val = input.value;
                         updateSliderRanges(val);
@@ -325,7 +336,7 @@
                         }
                     } else {
                         label.classList.remove('selected', 'border-primary', 'bg-primary/5', 'ring-2', 'ring-primary/25');
-                        label.classList.add('border-outline-variant/40');
+                        label.classList.add('border-outline-variant/30');
                     }
                 });
                 
