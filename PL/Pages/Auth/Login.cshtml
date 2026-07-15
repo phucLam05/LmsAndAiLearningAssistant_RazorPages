@@ -51,6 +51,12 @@
             <span asp-validation-for="Input.Password" class="text-error text-label-md block mt-1"></span>
         </div>
 
+        <div class="flex justify-end select-none">
+            <a asp-page="/Auth/ForgotPassword" class="text-label-md font-semibold text-primary hover:text-primary-fixed transition-colors">
+                Quên mật khẩu?
+            </a>
+        </div>
+
         <button type="submit"
                 class="w-full bg-primary hover:bg-primary/95 text-on-primary font-bold py-3 px-4 rounded-xl shadow-lg transition-all duration-200 flex items-center justify-center gap-2 hover:scale-[1.01] mt-6">
             <span>Đăng nhập</span>

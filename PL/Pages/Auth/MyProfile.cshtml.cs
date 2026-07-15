@@ -1,5 +1,5 @@
 using System.Security.Claims;
-using DAL.Interfaces;
+using BLL.Interfaces;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
@@ -11,11 +11,11 @@ namespace PL.Pages.Auth
     [Authorize]
     public class MyProfileModel : PageModel
     {
-        private readonly IUserRepository _userRepository;
+        private readonly IUserService _userService;
 
-        public MyProfileModel(IUserRepository userRepository)
+        public MyProfileModel(IUserService userService)
         {
-            _userRepository = userRepository;
+            _userService = userService;
         }
 
         public string UserCode { get; set; } = string.Empty;
@@ -25,8 +25,8 @@ namespace PL.Pages.Auth
             var userId = GetUserId();
             if (userId == Guid.Empty) return RedirectToPage("/Auth/Login");
 
-            var user = await _userRepository.GetByIdAsync(userId);
-            UserCode = user?.UserCode ?? "N/A";
+            var result = await _userService.GetUserCodeAsync(userId);
+            UserCode = result.IsSuccess ? result.Data ?? "N/A" : "N/A";
             return Page();
         }
 
@@ -36,30 +36,18 @@ namespace PL.Pages.Auth
             var userId = GetUserId();
             if (userId == Guid.Empty) return RedirectToPage("/Auth/Login");
 
-            if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)
-            {
-                ModelState.AddModelError(string.Empty, "Mật khẩu mới phải có ít nhất 6 ký tự.");
-                return await ReloadPage(userId);
-            }
-
             if (newPassword != confirmPassword)
             {
                 ModelState.AddModelError(string.Empty, "Mật khẩu mới và xác nhận không khớp.");
                 return await ReloadPage(userId);
             }
 
-            var user = await _userRepository.GetByIdAsync(userId);
-            if (user == null) return RedirectToPage("/Auth/Login");
-
-            if (string.IsNullOrEmpty(currentPassword) || !BCrypt.Net.BCrypt.Verify(currentPassword, user.PasswordHash))
+            var result = await _userService.ChangePasswordAsync(userId, currentPassword, newPassword);
+            if (!result.IsSuccess)
             {
-                ModelState.AddModelError(string.Empty, "Mật khẩu hiện tại không chính xác.");
+                ModelState.AddModelError(string.Empty, result.ErrorMessage ?? "Đổi mật khẩu thất bại.");
                 return await ReloadPage(userId);
             }
-
-            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
-            user.UpdatedAt = DateTime.UtcNow;
-            await _userRepository.UpdateAsync(user);
 
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 
@@ -69,8 +57,8 @@ namespace PL.Pages.Auth
 
         private async Task<IActionResult> ReloadPage(Guid userId)
         {
-            var user = await _userRepository.GetByIdAsync(userId);
-            UserCode = user?.UserCode ?? "N/A";
+            var result = await _userService.GetUserCodeAsync(userId);
+            UserCode = result.IsSuccess ? result.Data ?? "N/A" : "N/A";
             return Page();
         }
 

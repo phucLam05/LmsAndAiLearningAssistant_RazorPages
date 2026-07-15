@@ -13,6 +13,33 @@
         DocumentStatus.Pending => "Đang chờ",
         _ => Model.Document.Status.ToString()
     };
+    
+    var statusBg = Model.Document.Status switch
+    {
+        DocumentStatus.Success => "bg-tertiary-container/20 border-tertiary/30 text-tertiary",
+        DocumentStatus.Failed => "bg-error-container/20 border-error/30 text-error",
+        DocumentStatus.Processing => "bg-primary/10 border-primary/20 text-primary",
+        _ => "bg-yellow-500/10 border-yellow-500/20 text-yellow-500"
+    };
+
+    var ext = System.IO.Path.GetExtension(Model.Document.FileName).ToLower().TrimStart('.');
+    var icon = ext switch
+    {
+        "pdf" => "picture_as_pdf",
+        "docx" or "doc" => "description",
+        "pptx" or "ppt" => "slideshow",
+        "xlsx" or "xls" => "table_chart",
+        _ => "text_snippet"
+    };
+    
+    var iconColor = ext switch
+    {
+        "pdf" => "text-error",
+        "docx" or "doc" => "text-primary",
+        "pptx" or "ppt" => "text-secondary",
+        "xlsx" or "xls" => "text-tertiary",
+        _ => "text-outline"
+    };
 }
 
 @functions {
@@ -30,71 +57,305 @@
         }
         return $"{number:F1} {suffixes[counter]}";
     }
+
+    public static Microsoft.AspNetCore.Html.HtmlString FormatChunkContent(string content)
+    {
+        if (string.IsNullOrWhiteSpace(content)) return new Microsoft.AspNetCore.Html.HtmlString("");
+        
+        var normalized = content.Replace("\r\n", "\n").Replace("\r", "\n");
+        var paragraphs = normalized.Split(new[] { "\n\n" }, StringSplitOptions.RemoveEmptyEntries);
+        
+        var sb = new System.Text.StringBuilder();
+        foreach (var p in paragraphs)
+        {
+            var cleanedParagraph = System.Text.RegularExpressions.Regex.Replace(p.Replace("\n", " "), @"\s+", " ").Trim();
+            if (!string.IsNullOrEmpty(cleanedParagraph))
+            {
+                sb.Append($"<p class=\"mb-2 last:mb-0 text-justify\">{System.Net.WebUtility.HtmlEncode(cleanedParagraph)}</p>");
+            }
+        }
+        return new Microsoft.AspNetCore.Html.HtmlString(sb.ToString());
+    }
 }
 
-<div class="max-w-5xl mx-auto space-y-6 select-none">
-    <div>
-        <a href="@backUrl" class="inline-flex items-center gap-1 text-on-surface-variant hover:text-on-surface text-xs font-semibold">
-            <span class="material-symbols-outlined text-[16px]">arrow_back</span> Quay lại
-        </a>
+<div class="max-w-6xl mx-auto space-y-6 select-none py-2 animate-fade-in">
+    <!-- Navigation row -->
+    <div class="flex items-center justify-between px-1">
+        <div class="flex items-center gap-3">
+            <a href="@backUrl" class="inline-flex items-center gap-1.5 text-on-surface-variant hover:text-primary text-xs font-bold transition-all hover:-translate-x-0.5 duration-200">
+                <span class="material-symbols-outlined text-[16px]">arrow_back</span> Quay lại
+            </a>
+            <span class="text-outline-variant/50">/</span>
+            <span class="text-xs text-outline font-medium">Chi tiết tài liệu</span>
+        </div>
     </div>
 
-    <div class="bg-surface-container-low border border-outline-variant/30 rounded-2xl p-6 shadow-sm">
-        <div class="flex items-start gap-4">
-            <div class="w-14 h-14 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
-                <span class="material-symbols-outlined text-[28px] filled">description</span>
+    <!-- Document Info Card with Glassmorphism and gradients -->
+    <div class="relative bg-surface-container-low border border-outline-variant/30 rounded-3xl p-6 shadow-xl overflow-hidden group">
+        <div class="absolute -right-24 -top-24 w-48 h-48 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-all duration-300"></div>
+        <div class="absolute -left-24 -bottom-24 w-48 h-48 bg-secondary/5 rounded-full blur-3xl"></div>
+
+        <div class="relative flex flex-col md:flex-row md:items-center justify-between gap-5">
+            <div class="flex items-start md:items-center gap-4 min-w-0">
+                <div class="w-14 h-14 rounded-2xl bg-surface-container-high border border-outline-variant/40 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform duration-300">
+                    <span class="material-symbols-outlined text-[32px] filled @iconColor">@icon</span>
+                </div>
+                <div class="min-w-0 space-y-1">
+                    <h1 class="font-headline-sm text-lg sm:text-xl font-extrabold text-on-surface truncate" title="@Model.Document.FileName">
+                        @Model.Document.FileName
+                    </h1>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-lg text-xs font-mono font-bold tracking-tight">
+                            @Model.Document.SubjectCode
+                        </span>
+                        <span class="text-xs text-on-surface-variant font-medium truncate max-w-xs">
+                            @Model.Document.SubjectName
+                        </span>
+                    </div>
+                </div>
             </div>
-            <div class="flex-1 min-w-0">
-                <h1 class="font-headline-md text-headline-md font-bold text-on-surface truncate">@Model.Document.FileName</h1>
-                <p class="text-xs text-on-surface-variant mt-1">
-                    <span class="font-mono text-primary">@Model.Document.SubjectCode</span> · @Model.Document.SubjectName
-                </p>
-            </div>
-            <a asp-page="/Document/ViewOriginal" asp-route-id="@Model.Document.Id" target="_blank" class="bg-primary text-on-primary px-4 py-2 rounded-lg font-label-md text-xs font-bold flex items-center gap-1.5 hover:scale-[1.02] transition-all">
-                <span class="material-symbols-outlined text-[16px]">download</span> Tải xuống
+            
+            <a asp-page="/Document/ViewOriginal" asp-route-id="@Model.Document.Id" target="_blank" 
+               class="bg-gradient-to-r from-primary to-secondary text-on-primary hover:from-primary-fixed hover:to-secondary-fixed shadow-md hover:shadow-primary/25 transition-all font-bold px-5 py-3 rounded-xl text-xs flex items-center justify-center gap-1.5 hover:scale-[1.01] active:scale-[0.99] duration-200 shrink-0 cursor-pointer">
+                <span class="material-symbols-outlined text-[16px] font-bold">download</span> Tải xuống bản gốc
             </a>
         </div>
 
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6">
-            <div class="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-3">
-                <p class="text-[10px] text-outline uppercase tracking-wider">Trạng thái</p>
-                <p class="text-sm font-bold text-on-surface mt-0.5">@statusText</p>
+        <!-- Metric Grid -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-8 pt-6 border-t border-outline-variant/20">
+            <div class="bg-surface/40 border border-outline-variant/20 rounded-2xl p-4 flex flex-col justify-between hover:bg-surface/60 transition-colors">
+                <span class="text-[10px] text-outline font-bold uppercase tracking-wider">Trạng thái</span>
+                <span class="inline-flex items-center justify-center border px-3 py-1 rounded-xl text-xs font-bold w-fit mt-2 @statusBg">
+                    @statusText
+                </span>
             </div>
-            <div class="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-3">
-                <p class="text-[10px] text-outline uppercase tracking-wider">Dung lượng</p>
-                <p class="text-sm font-bold text-on-surface mt-0.5">@FormatFileSize(Model.Document.FileSize)</p>
+            
+            <div class="bg-surface/40 border border-outline-variant/20 rounded-2xl p-4 flex flex-col justify-between hover:bg-surface/60 transition-colors">
+                <span class="text-[10px] text-outline font-bold uppercase tracking-wider">Dung lượng</span>
+                <span class="text-base font-extrabold text-on-surface mt-2 font-mono">
+                    @FormatFileSize(Model.Document.FileSize)
+                </span>
             </div>
-            <div class="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-3">
-                <p class="text-[10px] text-outline uppercase tracking-wider">Chunks</p>
-                <p class="text-sm font-bold text-on-surface mt-0.5">@Model.Chunks.Count</p>
+
+            <div class="bg-surface/40 border border-outline-variant/20 rounded-2xl p-4 flex flex-col justify-between hover:bg-surface/60 transition-colors">
+                <span class="text-[10px] text-outline font-bold uppercase tracking-wider">Tổng số Chunks</span>
+                <span class="text-base font-extrabold text-on-surface mt-2 font-mono">
+                    @Model.Chunks.Count
+                </span>
             </div>
-            <div class="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-3">
-                <p class="text-[10px] text-outline uppercase tracking-wider">Tổng tokens</p>
-                <p class="text-sm font-bold text-on-surface mt-0.5">@Model.Chunks.Sum(c => c.TokenCount)</p>
+
+            <div class="bg-surface/40 border border-outline-variant/20 rounded-2xl p-4 flex flex-col justify-between hover:bg-surface/60 transition-colors">
+                <span class="text-[10px] text-outline font-bold uppercase tracking-wider">Tổng số Tokens</span>
+                <span class="text-base font-extrabold text-on-surface mt-2 font-mono text-secondary">
+                    @Model.Chunks.Sum(c => c.TokenCount)
+                </span>
             </div>
         </div>
     </div>
 
-    <div class="bg-surface-container-low border border-outline-variant/30 rounded-2xl p-5 shadow-sm">
-        <h3 class="font-headline-sm text-base font-bold text-on-surface mb-4">Danh sách chunks (@Model.Chunks.Count)</h3>
+    <!-- Chunks detail panel -->
+    <div class="bg-surface-container-low border border-outline-variant/30 rounded-3xl p-6 shadow-xl space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-[20px]">layers</span>
+                <h3 class="font-headline-sm text-base font-bold text-on-surface">Các phân đoạn văn bản (Chunks)</h3>
+            </div>
+
+            <!-- Real-time Filter Input -->
+            <div class="relative w-full sm:max-w-xs group select-none">
+                <span class="material-symbols-outlined absolute left-3 top-2.5 text-outline text-[18px] group-focus-within:text-primary transition-colors">search</span>
+                <input type="text" id="chunkSearchInput" 
+                       class="w-full bg-surface-container-high border border-outline-variant/40 rounded-xl pl-9 pr-8 py-2 text-on-surface placeholder:text-outline-variant/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all text-xs font-semibold" 
+                       placeholder="Tìm kiếm nội dung chunk..." autocomplete="off" />
+                <button type="button" id="clearSearchBtn" class="absolute right-3 top-2.5 text-outline hover:text-on-surface hidden transition-colors">
+                    <span class="material-symbols-outlined text-[16px]">close</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="searchStats" class="text-xs text-outline font-semibold select-none hidden">
+            Tìm thấy <span class="text-primary font-mono" id="matchedCount">0</span> / @Model.Chunks.Count chunks phù hợp.
+        </div>
+
         @if (!Model.Chunks.Any())
         {
-            <p class="text-xs text-on-surface-variant text-center py-6">Tài liệu chưa được phân tích hoặc không có chunks.</p>
+            <div class="text-center py-12 border border-dashed border-outline-variant/20 rounded-2xl bg-surface/20">
+                <span class="material-symbols-outlined text-[36px] text-outline-variant mb-2 block">description_off</span>
+                <p class="text-xs text-on-surface-variant font-medium">Tài liệu này chưa được phân tích hoặc không chứa chunks nào.</p>
+            </div>
         }
         else
         {
-            <div class="space-y-2 max-h-[600px] overflow-y-auto pr-1">
+            <div class="space-y-4 max-h-[650px] overflow-y-auto pr-1.5 scroll-smooth" id="chunksContainer">
                 @foreach (var chunk in Model.Chunks)
                 {
-                    <div class="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-3">
-                        <div class="flex justify-between text-[10px] text-outline mb-1">
-                            <span class="font-mono">#@chunk.ChunkIndex @(chunk.PageNumber.HasValue ? $"· Trang {chunk.PageNumber}" : "")</span>
-                            <span>~@chunk.TokenCount tokens</span>
+                    <div class="chunk-card bg-surface-container-lowest border border-outline-variant/20 hover:border-primary/40 rounded-2xl p-4 hover:shadow-md hover:scale-[1.002] transition-all duration-300 flex flex-col gap-3" data-chunk-index="@chunk.ChunkIndex">
+                        <!-- Card Header -->
+                        <div class="flex justify-between items-center text-[10px] text-outline border-b border-outline-variant/10 pb-2 select-none">
+                            <div class="flex items-center gap-2">
+                                <span class="bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-md font-mono font-bold">#@chunk.ChunkIndex</span>
+                                @if (ext == "pdf" && chunk.PageNumber.HasValue)
+                                {
+                                    <span class="bg-secondary/10 text-secondary border border-secondary/20 px-2 py-0.5 rounded-md font-bold">Trang @chunk.PageNumber</span>
+                                }
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="font-semibold text-outline-variant">~@chunk.TokenCount tokens</span>
+                                <button type="button" onclick="copyToClipboard(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(chunk.Content)), this)" 
+                                        class="text-outline hover:text-primary transition-colors p-1 flex items-center justify-center cursor-pointer" title="Sao chép nội dung">
+                                    <span class="material-symbols-outlined text-[16px]">content_copy</span>
+                                </button>
+                            </div>
                         </div>
-                        <p class="text-xs text-on-surface leading-relaxed whitespace-pre-wrap">@chunk.Content</p>
+                        
+                        <!-- Card Body (Text Content) -->
+                        <div class="chunk-body-container relative overflow-hidden">
+                            <div class="chunk-body text-xs text-on-surface leading-relaxed select-text line-clamp-4 transition-all duration-300">
+                                @FormatChunkContent(chunk.Content)
+                            </div>
+                        </div>
+
+                        <!-- Expand/Collapse footer -->
+                        <div class="chunk-footer hidden justify-start select-none pt-1 border-t border-outline-variant/10">
+                            <button onclick="toggleExpand(this)" class="expand-btn text-[10px] font-bold text-primary hover:text-primary-fixed-dim transition-colors flex items-center gap-0.5 cursor-pointer">
+                                Xem thêm <span class="material-symbols-outlined text-[14px]">expand_more</span>
+                            </button>
+                        </div>
                     </div>
                 }
             </div>
         }
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        // Copy to clipboard with toast notification
+        async function copyToClipboard(text, btn) {
+            try {
+                await navigator.clipboard.writeText(text);
+                const icon = btn.querySelector('.material-symbols-outlined');
+                const oldIcon = icon.textContent;
+                icon.textContent = 'check';
+                btn.classList.remove('text-outline');
+                btn.classList.add('text-tertiary');
+                if (typeof showNotification === 'function') {
+                    showNotification('Đã sao chép nội dung chunk!', 'success');
+                }
+                setTimeout(() => {
+                    icon.textContent = oldIcon;
+                    btn.classList.add('text-outline');
+                    btn.classList.remove('text-tertiary');
+                }, 2000);
+            } catch (err) {
+                if (typeof showNotification === 'function') {
+                    showNotification('Lỗi sao chép: ' + err.message, 'error');
+                }
+            }
+        }
+
+        // Expand / Collapse logic
+        function toggleExpand(btn) {
+            const card = btn.closest('.chunk-card');
+            const body = card.querySelector('.chunk-body');
+            const isClamped = body.classList.contains('line-clamp-4');
+            
+            if (isClamped) {
+                body.classList.remove('line-clamp-4');
+                btn.innerHTML = `Thu gọn <span class="material-symbols-outlined text-[14px]">expand_less</span>`;
+            } else {
+                body.classList.add('line-clamp-4');
+                btn.innerHTML = `Xem thêm <span class="material-symbols-outlined text-[14px]">expand_more</span>`;
+                // Smooth scroll back to show card top if needed
+                card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const searchInput = document.getElementById('chunkSearchInput');
+            const clearBtn = document.getElementById('clearSearchBtn');
+            const statsEl = document.getElementById('searchStats');
+            const matchedEl = document.getElementById('matchedCount');
+            const container = document.getElementById('chunksContainer');
+            
+            if (!container) return;
+
+            // Initialize chunks elements list
+            const chunks = Array.from(container.querySelectorAll('.chunk-card')).map(card => {
+                const body = card.querySelector('.chunk-body');
+                return {
+                    element: card,
+                    bodyElement: body,
+                    originalHtml: body.innerHTML,
+                    text: body.textContent.toLowerCase()
+                };
+            });
+
+            // Adjust expand buttons based on initial height
+            chunks.forEach(chunk => {
+                const body = chunk.bodyElement;
+                const footer = chunk.element.querySelector('.chunk-footer');
+                
+                // Temporarily remove clamp to calculate scroll height
+                body.classList.remove('line-clamp-4');
+                const fullHeight = body.scrollHeight;
+                body.classList.add('line-clamp-4');
+                
+                if (fullHeight > 80) { // Approx height of 4 lines
+                    footer.classList.remove('hidden');
+                    footer.classList.add('flex');
+                }
+            });
+
+            function escapeRegExp(string) {
+                return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            }
+
+            function performFilter() {
+                const query = searchInput.value.trim().toLowerCase();
+                
+                if (!query) {
+                    clearBtn.classList.add('hidden');
+                    statsEl.classList.add('hidden');
+                    
+                    chunks.forEach(chunk => {
+                        chunk.element.classList.remove('hidden');
+                        chunk.bodyElement.innerHTML = chunk.originalHtml;
+                    });
+                    return;
+                }
+
+                clearBtn.classList.remove('hidden');
+                statsEl.classList.remove('hidden');
+                
+                let matchesCount = 0;
+                const regex = new RegExp("(" + escapeRegExp(query) + ")(?![^<>]*>)", "gi");
+
+                chunks.forEach(chunk => {
+                    const matched = chunk.text.includes(query);
+                    if (matched) {
+                        chunk.element.classList.remove('hidden');
+                        matchesCount++;
+                        
+                        // Highlight matching text while keeping paragraph structure
+                        const highlighted = chunk.originalHtml.replace(regex, '<mark class="bg-primary/30 text-primary-fixed border border-primary/20 rounded px-0.5 font-bold">$1</mark>');
+                        chunk.bodyElement.innerHTML = highlighted;
+                    } else {
+                        chunk.element.classList.add('hidden');
+                    }
+                });
+
+                matchedEl.textContent = matchesCount;
+            }
+
+            // Bind events
+            searchInput.addEventListener('input', performFilter);
+            
+            clearBtn.addEventListener('click', () => {
+                searchInput.value = '';
+                performFilter();
+                searchInput.focus();
+            });
+        });
+    </script>
+}
