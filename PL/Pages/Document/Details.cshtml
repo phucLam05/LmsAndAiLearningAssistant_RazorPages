@@ -30,6 +30,25 @@
         }
         return $"{number:F1} {suffixes[counter]}";
     }
+
+    public static Microsoft.AspNetCore.Html.HtmlString FormatChunkContent(string content)
+    {
+        if (string.IsNullOrWhiteSpace(content)) return new Microsoft.AspNetCore.Html.HtmlString("");
+        
+        var normalized = content.Replace("\r\n", "\n").Replace("\r", "\n");
+        var paragraphs = normalized.Split(new[] { "\n\n" }, StringSplitOptions.RemoveEmptyEntries);
+        
+        var sb = new System.Text.StringBuilder();
+        foreach (var p in paragraphs)
+        {
+            var cleanedParagraph = System.Text.RegularExpressions.Regex.Replace(p.Replace("\n", " "), @"\s+", " ").Trim();
+            if (!string.IsNullOrEmpty(cleanedParagraph))
+            {
+                sb.Append($"<p class=\"mb-2 last:mb-0 text-justify\">{System.Net.WebUtility.HtmlEncode(cleanedParagraph)}</p>");
+            }
+        }
+        return new Microsoft.AspNetCore.Html.HtmlString(sb.ToString());
+    }
 }
 
 <div class="max-w-5xl mx-auto space-y-6 select-none">
@@ -91,7 +110,9 @@
                             <span class="font-mono">#@chunk.ChunkIndex @(chunk.PageNumber.HasValue ? $"· Trang {chunk.PageNumber}" : "")</span>
                             <span>~@chunk.TokenCount tokens</span>
                         </div>
-                        <p class="text-xs text-on-surface leading-relaxed whitespace-pre-wrap">@chunk.Content</p>
+                        <div class="text-xs text-on-surface leading-relaxed select-text">
+                            @FormatChunkContent(chunk.Content)
+                        </div>
                     </div>
                 }
             </div>

@@ -1,3 +1,4 @@
+using BLL.Interfaces;
 using BLL.Services;
 using Core.DTOs.Auth;
 using Core.Entities;
@@ -35,8 +36,9 @@ namespace Tests.BLL
         private static (AuthService service, Mock<IUserRepository> repoMock) BuildService()
         {
             var repoMock = new Mock<IUserRepository>();
+            var emailMock = new Mock<IEmailService>();
             var config = BuildConfig();
-            var service = new AuthService(repoMock.Object, config);
+            var service = new AuthService(repoMock.Object, emailMock.Object, config);
             return (service, repoMock);
         }
 
@@ -46,10 +48,11 @@ namespace Tests.BLL
         public void Constructor_ValidKey_DoesNotThrow()
         {
             var repoMock = new Mock<IUserRepository>();
+            var emailMock = new Mock<IEmailService>();
             var config = BuildConfig("FallbackKeyForDevExactly32Bytes!");
 
             // Should not throw
-            var service = new AuthService(repoMock.Object, config);
+            var service = new AuthService(repoMock.Object, emailMock.Object, config);
             Assert.NotNull(service);
         }
 
@@ -57,10 +60,11 @@ namespace Tests.BLL
         public void Constructor_InvalidKeyLength_ThrowsInvalidOperationException()
         {
             var repoMock = new Mock<IUserRepository>();
+            var emailMock = new Mock<IEmailService>();
             var config = BuildConfig("short"); // not 32 bytes
 
             Assert.Throws<InvalidOperationException>(() =>
-                new AuthService(repoMock.Object, config));
+                new AuthService(repoMock.Object, emailMock.Object, config));
         }
 
         // ── RegisterAsync ────────────────────────────────────────────────────────
@@ -429,8 +433,9 @@ namespace Tests.BLL
         public async Task DecryptEmail_RoundTrip_ReturnsOriginalEmail()
         {
             var repoMock = new Mock<IUserRepository>();
+            var emailMock = new Mock<IEmailService>();
             var config = BuildConfig();
-            var service = new AuthService(repoMock.Object, config);
+            var service = new AuthService(repoMock.Object, emailMock.Object, config);
 
             // Capture the encrypted email stored during RegisterAsync
             const string originalEmail = "roundtrip@example.com";
@@ -468,6 +473,65 @@ namespace Tests.BLL
 
             Assert.Throws<InvalidOperationException>(() =>
                 service.DecryptEmail("this-is-not-valid-base64!!!"));
+        }
+
+        // ── ForgotPasswordAsync ──────────────────────────────────────────────────
+
+        [Fact]
+        public async Task ForgotPasswordAsync_EmptyEmail_ReturnsFailure()
+        {
+            var (service, _) = BuildService();
+            var result = await service.ForgotPasswordAsync("");
+            Assert.False(result.IsSuccess);
+            Assert.Equal("Email không được để trống.", result.ErrorMessage);
+        }
+
+        [Fact]
+        public async Task ForgotPasswordAsync_UserNotFound_ReturnsSuccess()
+        {
+            var (service, repoMock) = BuildService();
+            repoMock
+                .Setup(r => r.GetUserByEmailHashAsync(It.IsAny<string>()))
+                .ReturnsAsync((User?)null);
+
+            var result = await service.ForgotPasswordAsync("notfound@example.com");
+            Assert.True(result.IsSuccess);
+        }
+
+        [Fact]
+        public async Task ForgotPasswordAsync_UserFound_UpdatesUserAndSendsEmail()
+        {
+            var repoMock = new Mock<IUserRepository>();
+            var emailMock = new Mock<IEmailService>();
+            var config = BuildConfig();
+            var service = new AuthService(repoMock.Object, emailMock.Object, config);
+
+            var user = new User
+            {
+                Id = Guid.NewGuid(),
+                FullName = "Found User",
+                PasswordHash = "oldhash",
+                Status = UserStatus.Active
+            };
+
+            repoMock
+                .Setup(r => r.GetUserByEmailHashAsync(It.IsAny<string>()))
+                .ReturnsAsync(user);
+
+            repoMock
+                .Setup(r => r.UpdateAsync(It.IsAny<User>()))
+                .Returns(Task.CompletedTask);
+
+            emailMock
+                .Setup(e => e.SendPasswordResetNotificationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+                .Returns(Task.CompletedTask);
+
+            var result = await service.ForgotPasswordAsync("found@example.com");
+
+            Assert.True(result.IsSuccess);
+            Assert.Equal(UserStatus.Inactive, user.Status);
+            repoMock.Verify(r => r.UpdateAsync(It.Is<User>(u => u.Status == UserStatus.Inactive)), Times.Once);
+            emailMock.Verify(e => e.SendPasswordResetNotificationAsync("found@example.com", "Found User", It.IsAny<string>()), Times.Once);
         }
     }
 }

@@ -30,6 +30,12 @@ namespace BLL.Interfaces
         /// </summary>
         Task<Result<string>> AdminResetPasswordAsync(Guid userId);
 
+        /// <summary>
+        /// Request a password reset. Generates a random temporary password, resets user status to Inactive,
+        /// and sends an email to the user with the new credentials.
+        /// </summary>
+        Task<Result> ForgotPasswordAsync(string email);
+
         string DecryptEmail(string encryptedEmailBase64);
     }
 }

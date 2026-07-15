@@ -186,15 +186,9 @@
         </div>
     </div>
 
-    <!-- ── Charts row 1: Role donut + Top subjects by docs ── -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 select-none">
+    <!-- ── Charts row 1: Top subjects by docs ── -->
+    <div class="grid grid-cols-1 gap-6 select-none">
         <div class="bg-surface-container-low border border-outline-variant/30 rounded-xl p-5 flex flex-col">
-            <h4 class="font-headline-sm text-base font-bold text-on-surface mb-4">Phân bổ vai trò</h4>
-            <div class="flex-1 min-h-[260px] flex items-center justify-center">
-                <canvas id="roleChart" class="w-full max-h-[240px]"></canvas>
-            </div>
-        </div>
-        <div class="lg:col-span-2 bg-surface-container-low border border-outline-variant/30 rounded-xl p-5 flex flex-col">
             <h4 class="font-headline-sm text-base font-bold text-on-surface mb-4">Top môn học theo số tài liệu</h4>
             @if (Model.Stats.TopSubjects.Any())
             {
@@ -388,23 +382,7 @@
             const tickColor = '#c1c6d6';
             const gridColor = 'rgba(65,71,84,0.3)';
 
-            // 1) Role doughnut
-            new Chart(document.getElementById('roleChart').getContext('2d'), {
-                type: 'doughnut',
-                data: {
-                    labels: ['Quản trị viên', 'Giảng viên', 'Sinh viên'],
-                    datasets: [{
-                        data: [@Model.Stats.AdminCount, @Model.Stats.LecturerCount, @Model.Stats.StudentCount],
-                        backgroundColor: ['rgba(255,180,171,0.85)', 'rgba(173,199,255,0.85)', 'rgba(109,221,129,0.75)'],
-                        borderColor: ['#ffb4ab', '#adc7ff', '#6ddd81'],
-                        borderWidth: 2, hoverOffset: 8
-                    }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false, cutout: '62%',
-                    plugins: { legend: { position: 'bottom', labels: { color: tickColor, font, padding: 14 } } }
-                }
-            });
+
 
             // 2) Top subjects bar (by documents)
             const subjectEl = document.getElementById('topSubjectsChart');

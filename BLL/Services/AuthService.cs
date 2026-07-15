@@ -17,11 +17,13 @@ namespace BLL.Services
     public class AuthService : IAuthService
     {
         private readonly IUserRepository _userRepository;
+        private readonly IEmailService _emailService;
         private readonly string _encryptionKey;
 
-        public AuthService(IUserRepository userRepository, IConfiguration configuration)
+        public AuthService(IUserRepository userRepository, IEmailService emailService, IConfiguration configuration)
         {
             _userRepository = userRepository;
+            _emailService = emailService;
             _encryptionKey = configuration["Security:EncryptionKey"] ?? "FallbackKeyForDevExactly32Bytes!"; // 32 bytes string
             
             // Ensure key is 32 bytes for AES-256
@@ -268,6 +270,56 @@ namespace BLL.Services
             }
         }
 
+        public async Task<Result> ForgotPasswordAsync(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                return Result.Failure("Email không được để trống.");
+            }
 
+            var normalizedEmail = email.Trim().ToLowerInvariant();
+            var emailHash = HashEmail(normalizedEmail);
+
+            User? user = null;
+            try
+            {
+                user = await _userRepository.GetUserByEmailHashAsync(emailHash);
+            }
+            catch (Exception)
+            {
+                return Result.Failure("Lỗi kết nối cơ sở dữ liệu. Vui lòng thử lại sau.");
+            }
+
+            if (user == null)
+            {
+                // For security, do not disclose if email is not found
+                return Result.Success();
+            }
+
+            var tempPassword = GenerateRandomPassword();
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(tempPassword);
+            user.Status = UserStatus.Inactive; // force password change on next login
+            user.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _userRepository.UpdateAsync(user);
+            }
+            catch (Exception)
+            {
+                return Result.Failure("Lỗi cập nhật dữ liệu. Vui lòng thử lại sau.");
+            }
+
+            try
+            {
+                await _emailService.SendPasswordResetNotificationAsync(normalizedEmail, user.FullName, tempPassword);
+            }
+            catch (Exception)
+            {
+                // Best effort sending
+            }
+
+            return Result.Success();
+        }
     }
 }
