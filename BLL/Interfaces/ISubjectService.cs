@@ -21,10 +21,10 @@ namespace BLL.Interfaces
         Task<SubjectDto?> GetSubjectByIdAsync(Guid id);
 
         /// <summary>Create a new subject with an optional lecturer assignment.</summary>
-        Task<(bool Success, string? Error)> CreateSubjectAsync(CreateSubjectDto dto);
+        Task<(bool Success, string? Error)> CreateSubjectAsync(CreateSubjectDto dto, Guid userId);
 
         /// <summary>Update subject name, description, lecturer, and status.</summary>
-        Task<(bool Success, string? Error)> UpdateSubjectAsync(UpdateSubjectDto dto);
+        Task<(bool Success, string? Error)> UpdateSubjectAsync(UpdateSubjectDto dto, Guid userId);
 
         /// <summary>Soft-delete or permanently remove a subject.</summary>
         Task<(bool Success, string? Error)> DeleteSubjectAsync(Guid id);
@@ -33,7 +33,7 @@ namespace BLL.Interfaces
         /// Assign exactly 1 lecturer to a subject (or remove assignment by passing null).
         /// This is the core constraint: 1 Subject → max 1 Lecturer.
         /// </summary>
-        Task<(bool Success, string? Error)> AssignLecturerAsync(AssignLecturerDto dto);
+        Task<(bool Success, string? Error)> AssignLecturerAsync(AssignLecturerDto dto, Guid userId);
 
         // ── LECTURER ─────────────────────────────────────────────────────────────
 

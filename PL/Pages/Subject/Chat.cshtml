@@ -1,13 +1,11 @@
 @page "/Subject/Chat/{subjectId:guid}/{sessionId:guid?}"
 @model PL.Pages.Subject.ChatModel
 @using Core.Entities
-@inject IDocumentService DocumentService
 @{
     ViewData["Title"] = $"{Model.Subject.SubjectCode} - Trợ lý AI";
-    var docs = await DocumentService.GetDocumentsBySubjectIdAsync(Model.Subject.Id);
-
     var userRoleClaim = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "Student";
     Enum.TryParse<UserRole>(userRoleClaim, out var uRole);
+    var docs = Model.Documents;
     string backAction = uRole == UserRole.Admin ? "/Subject/Index" :
                         uRole == UserRole.Lecturer ? "/Subject/MySubjects" :
                         "/Subject/Browse";
@@ -29,6 +27,44 @@
         return $"{number:F1} {suffixes[counter]}";
     }
 }
+
+<style>
+    /* DOCX pages are normally rendered at a fixed paper width. Make them
+       responsive inside the narrow sources panel instead of clipping them. */
+    #docxViewer {
+        width: 100%;
+        box-sizing: border-box;
+        overflow-x: hidden;
+    }
+
+    #docxViewer .docx-wrapper {
+        background: transparent !important;
+        padding: 0 !important;
+        width: 100% !important;
+        box-sizing: border-box;
+    }
+
+    #docxViewer section.docx {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 18px !important;
+        box-sizing: border-box;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    #docxViewer section.docx table,
+    #docxViewer section.docx img {
+        max-width: 100% !important;
+        height: auto !important;
+    }
+
+    #docxViewer section.docx table {
+        table-layout: fixed;
+    }
+</style>
 
 <div class="h-[calc(100vh-120px)] flex flex-col gap-4 overflow-hidden">
 
@@ -74,10 +110,7 @@
             <div id="leftTabDocs" class="flex-1 overflow-y-auto space-y-2 pr-1">
                 <div class="flex justify-between items-center mb-1 px-1">
                     <h4 class="font-bold text-on-surface text-xs">Nguồn RAG</h4>
-                    @if (docs.Any(d => d.Status == DocumentStatus.Success))
-                    {
-                        <button id="toggleSelectAll" onclick="toggleSelectAll()" class="text-[10px] text-primary hover:text-primary-fixed font-semibold transition-colors">Chọn tất cả</button>
-                    }
+                    <span class="text-[10px] text-outline">Tự động sử dụng</span>
                 </div>
                 @if (!docs.Any())
                 {
@@ -113,10 +146,11 @@
                             DocumentStatus.Success => "Đã Index",
                             DocumentStatus.Failed => "Thất bại",
                             DocumentStatus.Processing => "Đang xử lý",
+                            DocumentStatus.Conflict => "Trùng nội dung",
                             _ => doc.Status.ToString()
                         };
 
-                        <label class="flex items-center gap-2.5 rounded-xl p-2 transition-all border select-none @(isReady ? "bg-surface/40 hover:bg-surface border-outline-variant/20 cursor-pointer" : "bg-surface/10 border-outline-variant/10 opacity-50 cursor-not-allowed")" title="@doc.FileName">
+                        <div class="flex items-center gap-2.5 rounded-xl p-2 transition-all border select-none @(isReady ? "bg-surface/40 hover:bg-surface border-outline-variant/20" : "bg-surface/10 border-outline-variant/10 opacity-50")" title="@doc.FileName">
                             <span class="material-symbols-outlined text-[18px] @iconColor flex-shrink-0" style="font-variation-settings: 'FILL' 1;">@icon</span>
                             <div class="min-w-0 flex-1">
                                 <span class="text-[11px] font-semibold text-on-surface truncate block">@doc.FileName</span>
@@ -125,12 +159,7 @@
                                     <span class="text-[9px] text-outline">@docStatusText</span>
                                 </div>
                             </div>
-                            @if (isReady)
-                            {
-                                <input type="checkbox" class="doc-checkbox w-3.5 h-3.5 rounded border border-outline/30 bg-surface-container-high checked:bg-primary checked:border-primary cursor-pointer flex-shrink-0 appearance-none focus:outline-none transition-all"
-                                       value="@doc.Id" checked onchange="onDocCheckboxChange()" />
-                            }
-                        </label>
+                        </div>
                     }
                 }
             </div>
@@ -252,6 +281,7 @@
                 <div id="viewerBody" class="h-[45vh] overflow-auto bg-white text-black">
                     <div id="viewerLoading" class="hidden h-full flex items-center justify-center text-xs text-on-surface-variant">Đang tải tài liệu...</div>
                     <canvas id="pdfCanvas" class="hidden mx-auto"></canvas>
+                    <div id="docxViewer" class="hidden min-h-full overflow-auto bg-slate-100 p-2"></div>
                     <iframe id="iframeViewer" class="hidden w-full h-full border-0" sandbox="allow-scripts allow-same-origin allow-popups"></iframe>
                     <div id="viewerFallback" class="hidden h-full flex flex-col items-center justify-center text-center text-on-surface-variant text-xs p-4 gap-2">
                         <span class="material-symbols-outlined text-[36px] text-outline">visibility_off</span>
@@ -374,21 +404,6 @@
         userInput.addEventListener('keydown', function(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); chatForm.dispatchEvent(new Event('submit')); } });
         function setQuery(text) { userInput.value = text; userInput.focus(); userInput.style.height = 'auto'; userInput.style.height = (userInput.scrollHeight) + 'px'; }
 
-        function getSelectedDocIds() { return Array.from(document.querySelectorAll('.doc-checkbox:checked')).map(cb => cb.value); }
-        function onDocCheckboxChange() {
-            const selected = getSelectedDocIds();
-            const total = document.querySelectorAll('.doc-checkbox').length;
-            const toggleBtn = document.getElementById('toggleSelectAll');
-            if (toggleBtn) toggleBtn.textContent = selected.length === total ? 'Bỏ chọn tất cả' : 'Chọn tất cả';
-        }
-        function toggleSelectAll() {
-            const checkboxes = document.querySelectorAll('.doc-checkbox');
-            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
-            checkboxes.forEach(cb => cb.checked = !allChecked);
-            onDocCheckboxChange();
-        }
-        onDocCheckboxChange();
-
         // Sources panel
         const sourceListEl = document.getElementById('sourceList');
         const sourceEmptyEl = document.getElementById('sourceEmpty');
@@ -454,12 +469,15 @@
         const viewerOpenNew = document.getElementById('viewerOpenNew');
         const viewerLoading = document.getElementById('viewerLoading');
         const pdfCanvas = document.getElementById('pdfCanvas');
+        const docxViewer = document.getElementById('docxViewer');
         const iframeViewer = document.getElementById('iframeViewer');
         const viewerFallback = document.getElementById('viewerFallback');
 
         function closeViewer() {
             viewerPane.classList.add('hidden');
             pdfCanvas.classList.add('hidden');
+            docxViewer.replaceChildren();
+            docxViewer.classList.add('hidden');
             iframeViewer.src = '';
             iframeViewer.classList.add('hidden');
             viewerFallback.classList.add('hidden');
@@ -469,6 +487,8 @@
 
         function resetViewer() {
             pdfCanvas.classList.add('hidden');
+            docxViewer.replaceChildren();
+            docxViewer.classList.add('hidden');
             iframeViewer.src = '';
             iframeViewer.classList.add('hidden');
             viewerFallback.classList.add('hidden');
@@ -490,7 +510,7 @@
             resetViewer();
             viewerLoading.classList.remove('hidden');
             const fileUrl = `/Document/ViewOriginal?id=${source.documentId}`;
-            const unsupportedExts = ['docx', 'doc', 'pptx', 'ppt', 'xlsx', 'xls', 'zip', 'rar'];
+            const unsupportedExts = ['doc', 'pptx', 'ppt', 'xlsx', 'xls', 'zip', 'rar'];
             
             const viewerQuoteEl = document.getElementById('viewerQuote');
             if (source.content) {
@@ -514,6 +534,16 @@
                     iframeViewer.src = fileUrl;
                     iframeViewer.classList.remove('hidden');
                 }
+            } else if (ext === 'docx') {
+                try {
+                    await renderDocx(fileUrl);
+                    viewerLoading.classList.add('hidden');
+                    docxViewer.classList.remove('hidden');
+                } catch (err) {
+                    console.error('DOCX preview failed:', err);
+                    viewerLoading.classList.add('hidden');
+                    viewerFallback.classList.remove('hidden');
+                }
             } else if (unsupportedExts.includes(ext)) {
                 viewerLoading.classList.add('hidden');
                 viewerFallback.classList.remove('hidden');
@@ -522,6 +552,45 @@
                 viewerLoading.classList.add('hidden');
                 iframeViewer.classList.remove('hidden');
             }
+        }
+
+        let docxPreviewLoader;
+        function loadScriptOnce(src, isReady) {
+            if (isReady()) return Promise.resolve();
+            return new Promise((resolve, reject) => {
+                const existing = document.querySelector(`script[src="${src}"]`);
+                if (existing) {
+                    existing.addEventListener('load', resolve, { once: true });
+                    existing.addEventListener('error', reject, { once: true });
+                    return;
+                }
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+
+        async function renderDocx(url) {
+            docxPreviewLoader ??= (async () => {
+                await loadScriptOnce('https://unpkg.com/jszip@3.10.1/dist/jszip.min.js', () => typeof window.JSZip !== 'undefined');
+                await loadScriptOnce('https://unpkg.com/docx-preview@0.3.6/dist/docx-preview.min.js', () => typeof window.docx?.renderAsync === 'function');
+            })();
+            await docxPreviewLoader;
+
+            const response = await fetch(url, { credentials: 'same-origin' });
+            if (!response.ok) throw new Error(`Không tải được DOCX (${response.status})`);
+            const blob = await response.blob();
+            docxViewer.replaceChildren();
+            await window.docx.renderAsync(blob, docxViewer, docxViewer, {
+                className: 'docx-preview',
+                inWrapper: true,
+                ignoreWidth: false,
+                ignoreHeight: false,
+                breakPages: true,
+                useBase64URL: true
+            });
         }
 
         async function renderPdfPage(url, pageNum) {
@@ -671,12 +740,10 @@
             scrollToBottom();
             try {
                 const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
-                const selectedDocIds = getSelectedDocIds().join(',');
                 const fd = new FormData();
                 fd.append('subjectId', subjectId);
                 fd.append('message', query);
                 fd.append('model', DEFAULT_MODEL);
-                fd.append('documentIds', selectedDocIds);
                 if (currentSessionId) fd.append('sessionId', currentSessionId);
                 const response = await fetch('?handler=SendMessage', {
                     method: 'POST',

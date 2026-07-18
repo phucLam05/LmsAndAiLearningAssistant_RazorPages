@@ -75,6 +75,14 @@ namespace BLL.Services
             return documents.Select(MapDocument).ToList();
         }
 
+        public async Task<IReadOnlyList<DocumentDto>> GetVisibleDocumentsBySubjectIdAsync(Guid subjectId, UserRole role)
+        {
+            var documents = await _documentRepository.GetBySubjectIdAsync(subjectId);
+            if (role == UserRole.Student)
+                documents = documents.Where(d => d.Status == DocumentStatus.Success).ToList();
+            return documents.Select(MapDocument).ToList();
+        }
+
         public async Task<DocumentDto?> GetDocumentByIdAsync(Guid documentId)
         {
             var document = await _documentRepository.GetByIdAsync(documentId);
@@ -285,6 +293,7 @@ namespace BLL.Services
                     var embeddingJobId = _backgroundJobs.ContinueJobWith<IEmbeddingService>(chunkingJobId, x => x.ProcessEmbeddingsAsync(documentId, CancellationToken.None));
                 }
 
+                document.UpdatedBy = userId;
                 await _documentRepository.UpdateAsync(document);
                 return Result.Success();
             }

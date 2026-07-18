@@ -13,6 +13,7 @@ namespace BLL
             services.AddScoped<IChunkingConfigService, ChunkingConfigService>();
             services.AddScoped<IChunkingService, ChunkingService>();
             services.AddScoped<IDocumentService, DocumentService>();
+            services.AddScoped<IDocumentConflictService, DocumentConflictService>();
             services.AddScoped<IEmbeddingService, DocumentEmbeddingService>();
             services.AddScoped<ISubjectService, SubjectService>();
             services.AddScoped<IChatService, ChatService>();

@@ -19,7 +19,7 @@ namespace PL
             builder.Services.Configure<UploadOptions>(builder.Configuration.GetSection("Upload"));
             builder.Services.AddRazorPages();
             builder.Services.AddSignalR();
-            builder.Services.AddHttpContextAccessor();
+            builder.Services.AddMemoryCache();
 
             builder.Services.AddDataAccessLayer(builder.Configuration);
             builder.Services.AddBusinessLogicLayer();

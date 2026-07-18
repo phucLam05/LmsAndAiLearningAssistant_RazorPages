@@ -40,7 +40,7 @@ namespace BLL.Services
         }
 
         /// <inheritdoc/>
-        public async Task<(bool Success, string? Error)> CreateSubjectAsync(CreateSubjectDto dto)
+        public async Task<(bool Success, string? Error)> CreateSubjectAsync(CreateSubjectDto dto, Guid userId)
         {
             // Validate unique subject code
             if (await _subjectRepo.ExistsAsync(dto.SubjectCode))
@@ -53,7 +53,8 @@ namespace BLL.Services
                 Name = dto.Name.Trim(),
                 Description = dto.Description?.Trim(),
                 LecturerId = dto.LecturerId,   // 1 lecturer or null
-                Status = SubjectStatus.Active
+                Status = SubjectStatus.Active,
+                UpdatedBy = userId
             };
 
             await _subjectRepo.CreateAsync(subject);
@@ -61,7 +62,7 @@ namespace BLL.Services
         }
 
         /// <inheritdoc/>
-        public async Task<(bool Success, string? Error)> UpdateSubjectAsync(UpdateSubjectDto dto)
+        public async Task<(bool Success, string? Error)> UpdateSubjectAsync(UpdateSubjectDto dto, Guid userId)
         {
             var subject = await _subjectRepo.GetByIdAsync(dto.Id);
             if (subject == null)
@@ -71,6 +72,7 @@ namespace BLL.Services
             subject.Description = dto.Description?.Trim();
             subject.LecturerId = dto.LecturerId;   // enforce exactly 1 or null
             subject.Status = dto.Status;
+            subject.UpdatedBy = userId;
 
             await _subjectRepo.UpdateAsync(subject);
             return (true, null);
@@ -86,7 +88,7 @@ namespace BLL.Services
         }
 
         /// <inheritdoc/>
-        public async Task<(bool Success, string? Error)> AssignLecturerAsync(AssignLecturerDto dto)
+        public async Task<(bool Success, string? Error)> AssignLecturerAsync(AssignLecturerDto dto, Guid userId)
         {
             var subject = await _subjectRepo.GetByIdAsync(dto.SubjectId);
             if (subject == null)
@@ -94,6 +96,7 @@ namespace BLL.Services
 
             // Core business rule: exactly 1 lecturer per subject (or null to remove)
             subject.LecturerId = dto.LecturerId;
+            subject.UpdatedBy = userId;
 
             await _subjectRepo.UpdateAsync(subject);
             return (true, null);

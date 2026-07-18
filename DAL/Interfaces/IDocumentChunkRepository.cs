@@ -49,6 +49,10 @@ namespace DAL.Interfaces
             List<Guid>? documentIds = null,
             CancellationToken cancellationToken = default);
 
+        Task<IReadOnlyList<DocumentChunk>> FindSimilarChunksFromOtherDocumentsAsync(
+            Guid subjectId, Guid documentId, Vector queryEmbedding, int limit,
+            CancellationToken cancellationToken = default);
+
         /// <summary>
         /// Returns the total number of document chunks across all documents.
         /// </summary>

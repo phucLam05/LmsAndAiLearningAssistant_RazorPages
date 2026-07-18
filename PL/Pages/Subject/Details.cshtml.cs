@@ -17,12 +17,14 @@ namespace PL.Pages.Subject
         private readonly ISubjectService _subjectService;
         private readonly IDocumentService _documentService;
         private readonly Microsoft.AspNetCore.SignalR.IHubContext<PL.Hubs.LmsHub> _hubContext;
+        private readonly IDocumentConflictService _documentConflictService;
 
-        public DetailsModel(ISubjectService subjectService, IDocumentService documentService, Microsoft.AspNetCore.SignalR.IHubContext<PL.Hubs.LmsHub> hubContext)
+        public DetailsModel(ISubjectService subjectService, IDocumentService documentService, Microsoft.AspNetCore.SignalR.IHubContext<PL.Hubs.LmsHub> hubContext, IDocumentConflictService documentConflictService)
         {
             _subjectService = subjectService;
             _documentService = documentService;
             _hubContext = hubContext;
+            _documentConflictService = documentConflictService;
         }
 
         public SubjectDto Subject { get; set; } = new();
@@ -40,7 +42,7 @@ namespace PL.Pages.Subject
             if (subject == null) return NotFound();
             Subject = subject;
 
-            Documents = await _documentService.GetDocumentsBySubjectIdAsync(id);
+            Documents = await _documentService.GetVisibleDocumentsBySubjectIdAsync(id, UserRole);
             return Page();
         }
 
@@ -125,12 +127,37 @@ namespace PL.Pages.Subject
             if (d == null) return new JsonResult(new { });
             
             var progress = await _documentService.GetProcessingProgressAsync(docId);
+            var displayStatus = d.Status switch
+            {
+                DocumentStatus.Success => "Thành công",
+                DocumentStatus.Failed => "Thất bại",
+                DocumentStatus.Processing => "Đang xử lý",
+                DocumentStatus.Pending => "Đang chờ",
+                DocumentStatus.Conflict => "Trùng nội dung – cần kiểm tra",
+                _ => d.Status.ToString()
+            };
             return new JsonResult(new 
             { 
                 id = d.Id, 
                 status = d.Status.ToString(), 
+                displayStatus,
                 processed = progress.Processed, 
                 total = progress.Total 
+            });
+        }
+
+        public async Task<JsonResult> OnGetCompareConflictAsync(Guid docId, CancellationToken cancellationToken)
+        {
+            var result = await _documentConflictService.CompareAsync(docId, cancellationToken);
+            if (!result.IsSuccess || result.Data == null)
+                return new JsonResult(new { success = false, message = result.ErrorMessage });
+            return new JsonResult(new
+            {
+                success = true,
+                newFileName = result.Data.NewFileName,
+                oldFileName = result.Data.OldFileName,
+                analysis = result.Data.Analysis,
+                cached = result.Data.Cached
             });
         }
 

@@ -12,6 +12,7 @@ namespace BLL.Interfaces
     public interface IDocumentService
     {
         Task<IReadOnlyList<DocumentDto>> GetDocumentsBySubjectIdAsync(Guid subjectId);
+        Task<IReadOnlyList<DocumentDto>> GetVisibleDocumentsBySubjectIdAsync(Guid subjectId, Core.Entities.UserRole role);
         
         Task<DocumentDto?> GetDocumentByIdAsync(Guid documentId);
 

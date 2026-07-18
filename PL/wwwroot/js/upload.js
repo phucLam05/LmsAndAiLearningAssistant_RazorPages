@@ -310,7 +310,8 @@
             'Success': 'Thành công',
             'Failed': 'Thất bại',
             'Processing': 'Đang xử lý',
-            'Pending': 'Đang chờ'
+            'Pending': 'Đang chờ',
+            'Conflict': 'Trùng nội dung – cần kiểm tra'
         };
 
         setInterval(async () => {
@@ -325,7 +326,7 @@
                     if (!r.ok) continue;
                     const j = await r.json();
                     const txt = el.querySelector('.doc-status-text');
-                    const vietnameseStatus = statusMap[j.status] || j.status;
+                    const vietnameseStatus = j.displayStatus || statusMap[j.status] || j.status;
 
                     let displayStatus = vietnameseStatus;
                     if (j.status === 'Processing' && j.total > 0) {
@@ -338,10 +339,12 @@
                         el.classList.remove('bg-blue-500/10', 'border-blue-500/20', 'text-blue-500',
                             'bg-tertiary-container/20', 'border-tertiary/20', 'text-tertiary',
                             'bg-error-container/20', 'border-error/20', 'text-error',
-                            'bg-yellow-500/10', 'border-yellow-500/20', 'text-yellow-500');
+                            'bg-yellow-500/10', 'border-yellow-500/20', 'text-yellow-500',
+                            'bg-orange-500/10', 'border-orange-500/20', 'text-orange-400');
                         if (j.status === 'Success') el.classList.add('bg-tertiary-container/20', 'border-tertiary/20', 'text-tertiary');
                         else if (j.status === 'Failed') el.classList.add('bg-error-container/20', 'border-error/20', 'text-error');
                         else if (j.status === 'Processing') el.classList.add('bg-blue-500/10', 'border-blue-500/20', 'text-blue-500');
+                        else if (j.status === 'Conflict') el.classList.add('bg-orange-500/10', 'border-orange-500/20', 'text-orange-400');
                         else el.classList.add('bg-yellow-500/10', 'border-yellow-500/20', 'text-yellow-500');
 
                         // Manage dynamic spinner
@@ -358,7 +361,7 @@
                             }
                         }
 
-                        if (j.status === 'Success' || j.status === 'Failed') {
+                        if (j.status === 'Success' || j.status === 'Failed' || j.status === 'Conflict') {
                             setTimeout(() => location.reload(), 1500);
                             return;
                         }

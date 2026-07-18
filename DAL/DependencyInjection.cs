@@ -13,7 +13,7 @@ namespace DAL
         public static IServiceCollection AddDataAccessLayer(this IServiceCollection services, IConfiguration configuration)
         {
 
-            // Register AuditInterceptor as Scoped so it can use IHttpContextAccessor
+            // AuditInterceptor only manages timestamps and has no web-layer dependency.
             services.AddScoped<AuditInterceptor>();
 
             // Use the (IServiceProvider, DbContextOptionsBuilder) overload to resolve Scoped interceptor
@@ -42,4 +42,3 @@ namespace DAL
         }
     }
 }
-

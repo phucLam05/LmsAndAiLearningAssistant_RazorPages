@@ -95,6 +95,23 @@ namespace DAL.Repositories
                 .ToListAsync(cancellationToken);
         }
 
+        public async Task<IReadOnlyList<DocumentChunk>> FindSimilarChunksFromOtherDocumentsAsync(
+            Guid subjectId, Guid documentId, Vector queryEmbedding, int limit,
+            CancellationToken cancellationToken = default)
+        {
+            return await _context.DocumentChunks
+                .Where(c => c.SubjectId == subjectId && c.DocumentId != documentId && c.Embedding != null)
+                // Cosine distance <= 0.35 corresponds to a strong semantic relationship,
+                // not just near-identical wording. This catches related knowledge written
+                // differently (for example, the two Job documents) while ignoring unrelated
+                // chunks.
+                .Where(c => c.Embedding!.CosineDistance(queryEmbedding) <= 0.35)
+                .OrderBy(c => c.Embedding!.CosineDistance(queryEmbedding))
+                .Take(limit)
+                .Include(c => c.Document)
+                .ToListAsync(cancellationToken);
+        }
+
         public async Task<int> CountAllAsync()
         {
             return await _context.DocumentChunks.CountAsync();

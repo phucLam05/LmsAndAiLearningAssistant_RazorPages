@@ -5,6 +5,7 @@ using Core.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Security.Claims;
 
 namespace PL.Pages.Admin
 {
@@ -43,7 +44,7 @@ namespace PL.Pages.Admin
         public async Task<IActionResult> OnPostCreateAsync()
         {
             if (!ModelState.IsValid) { await LoadAsync(); return Page(); }
-            var (ok, err) = await _subjectService.CreateSubjectAsync(NewSubject);
+            var (ok, err) = await _subjectService.CreateSubjectAsync(NewSubject, GetCurrentUserId());
             if (!ok) ErrorMessage = err;
             else SuccessMessage = "ÄÃ£ táº¡o mÃ´n há»c.";
             NewSubject = new();
@@ -54,7 +55,7 @@ namespace PL.Pages.Admin
         public async Task<IActionResult> OnPostEditAsync()
         {
             if (!ModelState.IsValid) { await LoadAsync(); return Page(); }
-            var (ok, err) = await _subjectService.UpdateSubjectAsync(EditSubject);
+            var (ok, err) = await _subjectService.UpdateSubjectAsync(EditSubject, GetCurrentUserId());
             if (!ok) ErrorMessage = err; else SuccessMessage = "ÄÃ£ cáº­p nháº­t mÃ´n há»c.";
             await LoadAsync();
             return Page();
@@ -70,7 +71,7 @@ namespace PL.Pages.Admin
 
         public async Task<IActionResult> OnPostAssignAsync()
         {
-            var (ok, err) = await _subjectService.AssignLecturerAsync(AssignData);
+            var (ok, err) = await _subjectService.AssignLecturerAsync(AssignData, GetCurrentUserId());
             if (!ok) ErrorMessage = err; else SuccessMessage = "ÄÃ£ phÃ¢n cÃ´ng giáº£ng viÃªn.";
             await LoadAsync();
             return Page();
@@ -98,6 +99,14 @@ namespace PL.Pages.Admin
 
             // Lecturers for the assignment dropdown
             Lecturers = await _userService.GetLecturersAsync();
+        }
+
+        private Guid GetCurrentUserId()
+        {
+            var value = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            return Guid.TryParse(value, out var userId)
+                ? userId
+                : throw new InvalidOperationException("Authenticated user ID is missing or invalid.");
         }
     }
 }

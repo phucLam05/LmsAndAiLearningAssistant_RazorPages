@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using BLL.Interfaces;
 using Core.DTOs.Chat;
 using Core.DTOs.Subject;
+using Core.DTOs.Documents;
+using Core.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -17,17 +19,20 @@ namespace PL.Pages.Subject
     {
         private readonly ISubjectService _subjectService;
         private readonly IChatService _chatService;
+        private readonly IDocumentService _documentService;
 
-        public ChatModel(ISubjectService subjectService, IChatService chatService)
+        public ChatModel(ISubjectService subjectService, IChatService chatService, IDocumentService documentService)
         {
             _subjectService = subjectService;
             _chatService = chatService;
+            _documentService = documentService;
         }
 
         public SubjectDto Subject { get; set; } = new();
 
         public IReadOnlyList<ChatSessionDto> Sessions { get; set; } = Array.Empty<ChatSessionDto>();
         public IReadOnlyList<ChatMessageDto> InitialMessages { get; set; } = Array.Empty<ChatMessageDto>();
+        public IReadOnlyList<DocumentDto> Documents { get; set; } = Array.Empty<DocumentDto>();
 
         [BindProperty(SupportsGet = true)]
         public Guid? SessionId { get; set; }
@@ -38,6 +43,7 @@ namespace PL.Pages.Subject
             var s = await _subjectService.GetSubjectByIdAsync(subjectId);
             if (s == null) return NotFound();
             Subject = s;
+            Documents = await _documentService.GetVisibleDocumentsBySubjectIdAsync(subjectId, GetCurrentUserRole());
 
             var userId = GetCurrentUserId();
             if (userId != Guid.Empty)
@@ -51,7 +57,7 @@ namespace PL.Pages.Subject
             return Page();
         }
 
-        public async Task<JsonResult> OnPostSendMessageAsync(Guid subjectId, string message, string? model = null, string? documentIds = null, Guid? sessionId = null)
+        public async Task<JsonResult> OnPostSendMessageAsync(Guid subjectId, string message, string? model = null, Guid? sessionId = null)
         {
             if (string.IsNullOrWhiteSpace(message))
                 return new JsonResult(new { success = false, message = "Message cannot be empty." });
@@ -60,24 +66,12 @@ namespace PL.Pages.Subject
             if (userId == Guid.Empty)
                 return new JsonResult(new { success = false, message = "Vui lÃ²ng Ä‘Äƒng nháº­p." });
 
-            List<Guid>? selectedDocIds = null;
-            if (!string.IsNullOrWhiteSpace(documentIds))
-            {
-                selectedDocIds = documentIds
-                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                    .Select(s => Guid.TryParse(s, out var g) ? g : (Guid?)null)
-                    .Where(g => g.HasValue)
-                    .Select(g => g!.Value)
-                    .ToList();
-            }
-
             var result = await _chatService.ChatWithSubjectAsync(
                 userId,
                 subjectId,
                 message,
                 sessionId,
-                model,
-                selectedDocIds);
+                model);
             return new JsonResult(new
             {
                 success = true,
@@ -112,6 +106,12 @@ namespace PL.Pages.Subject
         {
             var idStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
             return Guid.TryParse(idStr, out var g) ? g : Guid.Empty;
+        }
+
+        private UserRole GetCurrentUserRole()
+        {
+            var role = User.FindFirstValue(ClaimTypes.Role);
+            return Enum.TryParse<UserRole>(role, out var parsed) ? parsed : UserRole.Student;
         }
     }
 }

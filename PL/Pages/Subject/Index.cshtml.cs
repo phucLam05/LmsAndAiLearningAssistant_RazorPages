@@ -70,7 +70,7 @@ namespace PL.Pages.Subject
                 Description = Description,
                 LecturerId = string.IsNullOrEmpty(LecturerId) ? null : Guid.Parse(LecturerId)
             };
-            var (success, error) = await _subjectService.CreateSubjectAsync(dto);
+            var (success, error) = await _subjectService.CreateSubjectAsync(dto, GetCurrentUserId());
             if (success)
             {
                 TempData["SuccessMessage"] = "Môn học đã được tạo thành công.";
@@ -92,7 +92,7 @@ namespace PL.Pages.Subject
                 LecturerId = string.IsNullOrEmpty(LecturerId) ? null : Guid.Parse(LecturerId),
                 Status = status
             };
-            var (success, error) = await _subjectService.UpdateSubjectAsync(dto);
+            var (success, error) = await _subjectService.UpdateSubjectAsync(dto, GetCurrentUserId());
             if (success)
             {
                 TempData["SuccessMessage"] = "Subject updated successfully.";
@@ -133,7 +133,7 @@ namespace PL.Pages.Subject
                 LecturerId = parsedLecturerId
             };
 
-            var (success, error) = await _subjectService.AssignLecturerAsync(dto);
+            var (success, error) = await _subjectService.AssignLecturerAsync(dto, GetCurrentUserId());
             if (success)
             {
                 TempData["SuccessMessage"] = parsedLecturerId.HasValue
@@ -152,6 +152,14 @@ namespace PL.Pages.Subject
         {
             var roleString = User.FindFirstValue(ClaimTypes.Role);
             return Enum.TryParse<UserRole>(roleString, out var role) ? role : UserRole.Student;
+        }
+
+        private Guid GetCurrentUserId()
+        {
+            var value = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            return Guid.TryParse(value, out var userId)
+                ? userId
+                : throw new InvalidOperationException("Authenticated user ID is missing or invalid.");
         }
 
         public class LecturerOption

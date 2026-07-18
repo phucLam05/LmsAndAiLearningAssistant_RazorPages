@@ -5,6 +5,7 @@ namespace Core.Entities
         Failed = -1,
         Pending = 0,
         Processing = 1,
-        Success = 2
+        Success = 2,
+        Conflict = 3
     }
 }

@@ -94,14 +94,16 @@
                                 DocumentStatus.Success => "Thành công",
                                 DocumentStatus.Failed => "Thất bại",
                                 DocumentStatus.Processing => "Đang xử lý",
-                                DocumentStatus.Pending => "Đang chờ",
+                DocumentStatus.Pending => "Đang chờ",
+                DocumentStatus.Conflict => "Trùng nội dung – cần kiểm tra",
                                 _ => doc.Status.ToString()
                             };
                             var statusClass = doc.Status switch
                             {
                                 DocumentStatus.Success => "bg-tertiary-container/20 border-tertiary/20 text-tertiary",
                                 DocumentStatus.Failed => "bg-error-container/20 border-error/20 text-error",
-                                DocumentStatus.Processing => "bg-blue-500/10 border-blue-500/20 text-blue-500",
+                DocumentStatus.Processing => "bg-blue-500/10 border-blue-500/20 text-blue-500",
+                DocumentStatus.Conflict => "bg-orange-500/10 border-orange-500/20 text-orange-400",
                                 _ => "bg-yellow-500/10 border-yellow-500/20 text-yellow-500"
                             };
                             <tr id="doc-@doc.Id">
@@ -113,6 +115,15 @@
                                 </td>
                                 <td class="p-3 text-xs text-on-surface-variant hidden sm:table-cell">@FormatFileSize(doc.FileSize)</td>
                                 <td class="p-3">
+                                    @if (doc.Status == DocumentStatus.Conflict)
+                                    {
+                                        <button type="button" onclick="openConflictModal('@doc.Id')" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-semibold @statusClass hover:brightness-125 transition" title="Mở để kiểm tra nội dung trùng">
+                                            <span class="material-symbols-outlined text-[12px]">warning</span>
+                                            <span class="doc-status-text">@statusText</span>
+                                        </button>
+                                    }
+                                    else
+                                    {
                                     <span class="doc-status inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-semibold @statusClass" data-doc-id="@doc.Id">
                                         @if (doc.Status == DocumentStatus.Processing)
                                         {
@@ -120,6 +131,7 @@
                                         }
                                         <span class="doc-status-text">@statusText</span>
                                     </span>
+                                    }
                                 </td>
                                 <td class="p-3 text-right">
                                     <div class="inline-flex gap-1">
@@ -128,7 +140,7 @@
                                         </a>
                                         @if (doc.Status == DocumentStatus.Failed && canUpload)
                                         {
-                                            <form method="post" asp-page-handler="Retry" asp-page="/Document/Details" asp-route-id="@doc.Id" asp-route-subjectId="@Model.Subject.Id" class="inline">
+                                            <form method="post" asp-page-handler="Retry" asp-page="/Subject/Details" asp-route-id="@doc.Id" asp-route-subjectId="@Model.Subject.Id" class="inline">
                                                 @Html.AntiForgeryToken()
                                                 <button type="submit" class="p-1 bg-surface border border-outline-variant hover:bg-surface-container-high rounded text-primary" title="Thử lại">
                                                     <span class="material-symbols-outlined text-[14px]">refresh</span>
@@ -137,7 +149,7 @@
                                         }
                                         @if (canDelete && Model.UserRole == UserRole.Lecturer)
                                         {
-                                            <form method="post" asp-page-handler="Delete" asp-page="/Document/Details" asp-route-id="@doc.Id" asp-route-subjectId="@Model.Subject.Id" class="inline" data-confirm="Bạn có chắc muốn xóa tài liệu @doc.FileName?">
+                                            <form method="post" asp-page-handler="Delete" asp-page="/Subject/Details" asp-route-id="@doc.Id" asp-route-subjectId="@Model.Subject.Id" class="inline" data-confirm="Bạn có chắc muốn xóa tài liệu @doc.FileName?">
                                                 @Html.AntiForgeryToken()
                                                 <button type="submit" class="p-1 bg-surface border border-outline-variant hover:bg-error-container/20 rounded text-error" title="Xóa">
                                                     <span class="material-symbols-outlined text-[14px]">delete</span>
@@ -155,6 +167,17 @@
     </div>
 </div>
 
+<div id="conflictModal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/60 p-4">
+    <div class="w-full max-w-5xl max-h-[88vh] overflow-hidden rounded-2xl border border-outline-variant bg-surface-container shadow-2xl">
+        <div class="flex items-center justify-between border-b border-outline-variant/30 px-5 py-4">
+            <div><h3 class="font-bold text-on-surface">So sánh nội dung trùng</h3><p id="conflictSummary" class="text-xs text-on-surface-variant mt-1"></p></div>
+            <button type="button" onclick="closeConflictModal()" class="text-outline hover:text-on-surface"><span class="material-symbols-outlined">close</span></button>
+        </div>
+        <div id="conflictLoading" class="p-12 text-center text-sm text-on-surface-variant">AI đang phân tích hai tài liệu...</div>
+        <div id="conflictContent" class="hidden max-h-[70vh] overflow-y-auto p-5 space-y-4"></div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
         const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
@@ -168,5 +191,69 @@
             fieldName: 'file'
         });
         LmsUpload.pollDocumentStatus('?handler=GetStatus', token);
+
+        // A row may have been rendered while the document was still Processing.
+        // Convert a terminal Conflict badge in-place and detach it from polling so
+        // the raw enum value can never overwrite the Vietnamese label again.
+        function normalizeConflictBadges() {
+            document.querySelectorAll('.doc-status').forEach(el => {
+                const text = el.querySelector('.doc-status-text');
+                if (!text || text.textContent.trim().toLowerCase() !== 'conflict') return;
+                const docId = el.dataset.docId;
+                text.textContent = 'Trùng nội dung – cần kiểm tra';
+                el.classList.remove('doc-status', 'bg-yellow-500/10', 'border-yellow-500/20', 'text-yellow-500');
+                el.classList.add('bg-orange-500/10', 'border-orange-500/20', 'text-orange-400', 'cursor-pointer');
+                el.removeAttribute('data-doc-id');
+                el.setAttribute('role', 'button');
+                el.setAttribute('tabindex', '0');
+                if (docId) {
+                    el.onclick = () => openConflictModal(docId);
+                    el.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') openConflictModal(docId); };
+                }
+            });
+        }
+        normalizeConflictBadges();
+        const documentsTableBody = document.querySelector('tbody');
+        if (documentsTableBody) {
+            new MutationObserver(normalizeConflictBadges).observe(documentsTableBody, {
+                subtree: true,
+                childList: true,
+                characterData: true
+            });
+        }
+
+        function closeConflictModal() {
+            const modal = document.getElementById('conflictModal');
+            modal.classList.add('hidden'); modal.classList.remove('flex');
+        }
+        function escapeConflictHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+        async function openConflictModal(docId) {
+            const modal = document.getElementById('conflictModal');
+            const loading = document.getElementById('conflictLoading');
+            const content = document.getElementById('conflictContent');
+            modal.classList.remove('hidden'); modal.classList.add('flex');
+            loading.classList.remove('hidden'); content.classList.add('hidden'); content.innerHTML = '';
+            try {
+                const response = await fetch(`?handler=CompareConflict&docId=${encodeURIComponent(docId)}`);
+                const data = await response.json();
+                if (!data.success) throw new Error(data.message || 'Không thể so sánh.');
+                const cleaned = data.analysis.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
+                const analysis = JSON.parse(cleaned);
+                document.getElementById('conflictSummary').textContent = analysis.summary || `${data.newFileName} ↔ ${data.oldFileName}`;
+                content.innerHTML = (analysis.matches || []).map((m, i) => `
+                    <div class="rounded-xl border border-orange-500/30 bg-orange-500/5 p-4">
+                        <p class="mb-3 text-xs font-bold text-orange-400">Phần trùng ${i + 1}: ${escapeConflictHtml(m.reason)}</p>
+                        <div class="grid gap-3 md:grid-cols-2">
+                            <div><p class="mb-1 text-[11px] font-bold text-primary">${escapeConflictHtml(data.newFileName)}</p><mark class="block rounded-lg bg-yellow-300/25 p-3 text-xs leading-relaxed text-on-surface">${escapeConflictHtml(m.newText)}</mark></div>
+                            <div><p class="mb-1 text-[11px] font-bold text-tertiary">${escapeConflictHtml(data.oldFileName)}</p><mark class="block rounded-lg bg-yellow-300/25 p-3 text-xs leading-relaxed text-on-surface">${escapeConflictHtml(m.oldText)}</mark></div>
+                        </div>
+                    </div>`).join('') || '<p class="text-sm text-outline">AI không xác định được đoạn trùng cụ thể.</p>';
+                loading.classList.add('hidden'); content.classList.remove('hidden');
+            } catch (error) {
+                loading.textContent = `Không thể phân tích: ${error.message}`;
+            }
+        }
     </script>
 }
